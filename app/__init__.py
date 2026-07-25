@@ -1,0 +1,2 @@
+"""Meeting planner bot application."""
+
