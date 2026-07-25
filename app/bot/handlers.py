@@ -1,11 +1,15 @@
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from datetime import datetime, timedelta, timezone
 
 from app.bot.keyboards import (
+    booking_comment_keyboard,
+    booking_confirmation_keyboard,
+    booking_dates_keyboard,
+    booking_times_keyboard,
     client_main_menu,
     confirm_registration_keyboard,
     consent_keyboard,
@@ -71,6 +75,11 @@ from app.services.email import (
 )
 
 router = Router()
+
+
+async def _cancel_booking_flow(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Запись отменена. Главное меню.", reply_markup=client_main_menu())
 
 
 def _display_name(message: Message) -> str:
@@ -311,17 +320,41 @@ async def start_booking(message: Message, state: FSMContext, settings: Settings,
     await state.set_state(Booking.waiting_for_date)
     await state.update_data(duration=duration, horizon=horizon, notice=notice)
     await message.answer(
-        "Выберите дату. Доступные даты:\n"
-        + "\n".join(format_moscow_date(item) for item in dates)
-        + "\n\nОтправьте дату в формате ДД.ММ.ГГГГ.",
+        "Выберите дату кнопкой ниже.",
+        reply_markup=booking_dates_keyboard(dates),
     )
+
+
+@router.message(Booking.waiting_for_time, F.text == "Изменить дату")
+@router.message(
+    Booking.waiting_for_date,
+    Booking.waiting_for_time,
+    Booking.waiting_for_title,
+    Booking.waiting_for_comment,
+    Booking.waiting_for_confirmation,
+    F.text == "Отмена",
+)
+async def cancel_booking_flow(message: Message, state: FSMContext, settings: Settings = None, session_factory=None):
+    if (message.text or "").strip() == "Изменить дату":
+        await start_booking(message, state, settings, session_factory)
+        return
+    await _cancel_booking_flow(message, state)
 
 
 @router.message(Booking.waiting_for_date)
 async def choose_date(message: Message, state: FSMContext, settings: Settings, session_factory):
     selected_date = parse_moscow_date(message.text or "")
     if selected_date is None:
-        await message.answer("Отправьте дату в формате ДД.ММ.ГГГГ.")
+        data = await state.get_data()
+        allowed_dates = available_dates(
+            horizon_days=data.get("horizon", 14),
+            duration_minutes=data.get("duration", 60),
+            min_notice_hours=data.get("notice", 24),
+        )
+        await message.answer(
+            "Выберите дату кнопкой ниже.",
+            reply_markup=booking_dates_keyboard(allowed_dates),
+        )
         return
 
     data = await state.get_data()
@@ -331,7 +364,10 @@ async def choose_date(message: Message, state: FSMContext, settings: Settings, s
         min_notice_hours=data.get("notice", 24),
     )
     if selected_date not in allowed_dates:
-        await message.answer("Эта дата недоступна. Выберите дату из списка.")
+        await message.answer(
+            "Эта дата недоступна. Выберите дату кнопкой из списка.",
+            reply_markup=booking_dates_keyboard(allowed_dates),
+        )
         return
 
     async with session_factory() as session:
@@ -359,15 +395,17 @@ async def choose_date(message: Message, state: FSMContext, settings: Settings, s
         min_notice_hours=data.get("notice", 24),
     )
     if not slots:
-        await message.answer("На эту дату свободных слотов уже нет. Выберите другую дату.")
+        await message.answer(
+            "На эту дату свободных слотов уже нет. Выберите другую дату.",
+            reply_markup=booking_dates_keyboard(allowed_dates),
+        )
         return
 
     await state.update_data(selected_date=selected_date, slots=slots)
     await state.set_state(Booking.waiting_for_time)
     await message.answer(
-        "Выберите время:\n"
-        + "\n".join(slot.strftime("%H:%M") for slot in slots)
-        + "\n\nОтправьте время в формате ЧЧ:ММ.",
+        "Выберите время кнопкой ниже.",
+        reply_markup=booking_times_keyboard(slots),
     )
 
 
@@ -375,7 +413,11 @@ async def choose_date(message: Message, state: FSMContext, settings: Settings, s
 async def choose_time(message: Message, state: FSMContext, settings: Settings, session_factory):
     selected_time = parse_moscow_time(message.text or "")
     if selected_time is None:
-        await message.answer("Отправьте время в формате ЧЧ:ММ.")
+        data = await state.get_data()
+        await message.answer(
+            "Выберите время кнопкой ниже.",
+            reply_markup=booking_times_keyboard(data.get("slots", [])),
+        )
         return
 
     data = await state.get_data()
@@ -386,7 +428,10 @@ async def choose_time(message: Message, state: FSMContext, settings: Settings, s
             break
 
     if selected_start is None:
-        await message.answer("Это время недоступно. Выберите время из списка.")
+        await message.answer(
+            "Это время недоступно. Выберите время кнопкой из списка.",
+            reply_markup=booking_times_keyboard(data["slots"]),
+        )
         return
 
     async with session_factory() as session:
@@ -412,13 +457,16 @@ async def choose_time(message: Message, state: FSMContext, settings: Settings, s
         duration_minutes=data.get("duration", 60),
         min_notice_hours=data.get("notice", 24),
     ):
-        await message.answer("Слот уже заняли. Вернитесь к записи и выберите время заново.")
-        await state.clear()
+        await message.answer("Слот уже заняли. Давайте выберем дату и время заново.")
+        await start_booking(message, state, settings, session_factory)
         return
 
     await state.update_data(selected_start=selected_start)
     await state.set_state(Booking.waiting_for_title)
-    await message.answer("Введите название встречи. От 3 до 100 символов.")
+    await message.answer(
+        "Введите название встречи. От 3 до 100 символов.",
+        reply_markup=ReplyKeyboardRemove(),
+    )
 
 
 @router.message(Booking.waiting_for_title)
@@ -430,7 +478,10 @@ async def enter_booking_title(message: Message, state: FSMContext):
 
     await state.update_data(title=title)
     await state.set_state(Booking.waiting_for_comment)
-    await message.answer("Добавьте комментарий или отправьте «Без комментария».")
+    await message.answer(
+        "Добавьте комментарий или нажмите «Без комментария».",
+        reply_markup=booking_comment_keyboard(),
+    )
 
 
 @router.message(Booking.waiting_for_comment)
@@ -444,6 +495,7 @@ async def enter_booking_comment(message: Message, state: FSMContext):
         _booking_summary(data)
         + "\n\nОтправьте «Отправить заявку», «Изменить дату», «Изменить время», "
         "«Изменить название» или «Изменить комментарий».",
+        reply_markup=booking_confirmation_keyboard(),
     )
 
 
@@ -457,22 +509,24 @@ async def booking_change_time(message: Message, state: FSMContext):
     data = await state.get_data()
     await state.set_state(Booking.waiting_for_time)
     await message.answer(
-        "Выберите время:\n"
-        + "\n".join(slot.strftime("%H:%M") for slot in data["slots"])
-        + "\n\nОтправьте время в формате ЧЧ:ММ.",
+        "Выберите время кнопкой ниже.",
+        reply_markup=booking_times_keyboard(data["slots"]),
     )
 
 
 @router.message(Booking.waiting_for_confirmation, F.text == "Изменить название")
 async def booking_change_title(message: Message, state: FSMContext):
     await state.set_state(Booking.waiting_for_title)
-    await message.answer("Введите название встречи заново.")
+    await message.answer("Введите название встречи заново.", reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(Booking.waiting_for_confirmation, F.text == "Изменить комментарий")
 async def booking_change_comment(message: Message, state: FSMContext):
     await state.set_state(Booking.waiting_for_comment)
-    await message.answer("Введите комментарий заново или отправьте «Без комментария».")
+    await message.answer(
+        "Введите комментарий заново или нажмите «Без комментария».",
+        reply_markup=booking_comment_keyboard(),
+    )
 
 
 @router.message(Booking.waiting_for_confirmation, F.text == "Отправить заявку")
@@ -1361,6 +1415,30 @@ async def system_menu(message: Message, settings: Settings, session_factory):
         )
         return
     await message.answer("У вас нет доступа к управлению системой")
+
+
+@router.message(
+    F.text.in_(
+        {
+            "Отправить заявку",
+            "Изменить дату",
+            "Изменить время",
+            "Изменить название",
+            "Изменить комментарий",
+            "Отмена",
+            "Без комментария",
+        }
+    )
+)
+async def stale_booking_buttons(message: Message):
+    if (message.text or "").strip() == "Отмена":
+        await message.answer("Действие отменено. Главное меню.", reply_markup=client_main_menu())
+        return
+    await message.answer(
+        "Бот был перезапущен, поэтому текущий шаг записи сбросился. "
+        "Нажмите «Записаться на встречу» и начните запись заново.",
+        reply_markup=client_main_menu(),
+    )
 
 
 @router.message()
