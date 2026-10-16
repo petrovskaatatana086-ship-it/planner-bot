@@ -4,6 +4,8 @@ from urllib.parse import quote
 
 from aiohttp import ClientSession
 
+from app.domain.booking import to_moscow
+
 GOOGLE_CALENDAR_LIST_URL = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
 GOOGLE_FREEBUSY_URL = "https://www.googleapis.com/calendar/v3/freeBusy"
 GOOGLE_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
@@ -129,8 +131,8 @@ async def create_google_meeting_event(
     payload = {
         "summary": title,
         "description": description or "",
-        "start": {"dateTime": start_at.isoformat(), "timeZone": "Europe/Moscow"},
-        "end": {"dateTime": end_at.isoformat(), "timeZone": "Europe/Moscow"},
+        "start": {"dateTime": to_moscow(start_at).isoformat(), "timeZone": "Europe/Moscow"},
+        "end": {"dateTime": to_moscow(end_at).isoformat(), "timeZone": "Europe/Moscow"},
         "attendees": [{"email": attendee_email}],
         "conferenceData": {
             "createRequest": {
@@ -172,8 +174,8 @@ async def update_google_event_time(
     url = GOOGLE_EVENTS_URL.format(calendar_id=quote(calendar_id, safe="")) + f"/{quote(event_id, safe='')}"
     params = {"sendUpdates": "all"}
     payload = {
-        "start": {"dateTime": start_at.isoformat(), "timeZone": "Europe/Moscow"},
-        "end": {"dateTime": end_at.isoformat(), "timeZone": "Europe/Moscow"},
+        "start": {"dateTime": to_moscow(start_at).isoformat(), "timeZone": "Europe/Moscow"},
+        "end": {"dateTime": to_moscow(end_at).isoformat(), "timeZone": "Europe/Moscow"},
     }
 
     async with ClientSession() as session:
