@@ -1,0 +1,46 @@
+name: calendar-bot
+
+services:
+  bot:
+    image: ${CALENDAR_IMAGE:?Deployment image must be specified}
+    pull_policy: never
+    env_file:
+      - path: /opt/calendar-bot/.env
+        format: raw
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/planner.db
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: "8000"
+      GOOGLE_REDIRECT_URI: https://calendar.tatyana-petrovskaya.ru/google/oauth/callback
+    ports:
+      - "127.0.0.1:8012:8000"
+    volumes:
+      - /opt/calendar-bot/data:/data
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    mem_reservation: 96m
+    memswap_limit: 384m
+    cpus: 0.50
+    pids_limit: 64
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  default:
+    name: calendar-bot-network

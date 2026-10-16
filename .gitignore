@@ -8,4 +8,5 @@ planner.db
 logs/
 .deploy/
 data/
+.test_autodeploy_*/
 

@@ -1,5 +1,7 @@
 # Размещение calendar-bot
 
+Автоматические обновления из GitHub: [пошаговая настройка](../docs/04-autodeploy.md).
+
 Сервер: `85.198.65.229`, SSH-пользователь `tataynka_pe`.
 Поддомен: `https://calendar.tatyana-petrovskaya.ru`.
 Бот: `https://t.me/my_meeting_helper_23_bot`.

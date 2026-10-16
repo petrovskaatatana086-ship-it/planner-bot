@@ -1,0 +1,4 @@
+*.sh text eol=lf
+.github/workflows/*.yml text eol=lf
+deploy/autodeploy/*.py text eol=lf
+deploy/autodeploy/known_hosts text eol=lf

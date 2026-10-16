@@ -1,0 +1,89 @@
+name: Test and deploy calendar bot
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python -m unittest discover -s tests
+      - name: Check server scripts
+        run: |
+          bash -n deploy/autodeploy/install-server.sh
+          bash -n deploy/autodeploy/ssh-command.sh
+          python -m py_compile deploy/autodeploy/deploy-server.py deploy/autodeploy/setup.py
+
+  deploy:
+    needs: test
+    if: >-
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/master' &&
+      vars.CALENDAR_AUTODEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    concurrency:
+      group: calendar-bot-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Build image on GitHub
+        run: |
+          set -euo pipefail
+          docker build --platform linux/amd64 --file Dockerfile.production \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag "calendar-bot:$GITHUB_SHA" .
+          docker save "calendar-bot:$GITHUB_SHA" | gzip -1 > "$RUNNER_TEMP/calendar-bot.tar.gz"
+      - name: Skip superseded commits
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/master" --jq .object.sha)
+          if [[ "$latest" == "$GITHUB_SHA" ]]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+            echo 'A newer commit is already on master; this deployment is skipped.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Deliver and deploy only calendar-bot
+        if: steps.latest.outputs.deploy == 'true'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.CALENDAR_DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_SSH_KEY" || { echo 'Configure CALENDAR_DEPLOY_SSH_KEY first.'; exit 1; }
+          ssh_dir=$(mktemp -d "$RUNNER_TEMP/calendar-ssh.XXXXXX")
+          trap 'rm -f "$ssh_dir/key" "$ssh_dir/known_hosts"; rmdir "$ssh_dir"' EXIT
+          chmod 700 "$ssh_dir"
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$ssh_dir/key"
+          chmod 600 "$ssh_dir/key"
+          cp deploy/autodeploy/known_hosts "$ssh_dir/known_hosts"
+          ssh-keygen -y -f "$ssh_dir/key" > /dev/null
+          ssh -T -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+            -i "$ssh_dir/key" calendar-deploy@85.198.65.229 \
+            "deploy $GITHUB_SHA" < "$RUNNER_TEMP/calendar-bot.tar.gz"
+          curl --fail --silent --show-error --retry 3 --retry-delay 3 \
+            https://calendar.tatyana-petrovskaya.ru/health
+          echo "Deployed calendar-bot commit $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
