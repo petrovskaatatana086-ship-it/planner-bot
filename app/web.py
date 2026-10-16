@@ -8,6 +8,7 @@ from app.config import Settings
 from app.db.repositories import complete_google_oauth, fail_google_oauth
 from app.integrations.google_oauth import (
     exchange_code_for_tokens,
+    fetch_google_account_email,
     google_oauth_is_configured,
     parse_oauth_state,
 )
@@ -59,6 +60,7 @@ async def google_oauth_callback(request: web.Request) -> web.Response:
 
     try:
         token_response = await exchange_code_for_tokens(settings, code)
+        google_email = await fetch_google_account_email(token_response.access_token)
         encrypted_access_token = encrypt_secret(
             token_response.access_token,
             settings.oauth_encryption_key,
@@ -71,17 +73,18 @@ async def google_oauth_callback(request: web.Request) -> web.Response:
             )
 
         async with session_factory() as session:
-            credential = await complete_google_oauth(
+            await complete_google_oauth(
                 session,
                 owner_user_id=owner_user_id,
                 oauth_state=state,
                 encrypted_access_token=encrypted_access_token,
                 encrypted_refresh_token=encrypted_refresh_token,
                 expires_at=token_response.expires_at,
+                google_email=google_email,
             )
             await session.commit()
 
-        await _notify_owner(bot, settings, "Google Calendar подключен.")
+        await _notify_owner(bot, settings, f"Google Calendar подключен: {google_email}")
         return web.Response(
             text="Google Calendar connected. You can return to Telegram.",
             content_type="text/plain",

@@ -26,6 +26,7 @@ class GoogleBusyPeriod:
 @dataclass(frozen=True)
 class GoogleCreatedEvent:
     event_id: str
+    event_url: str | None
     meet_url: str | None
 
 
@@ -154,6 +155,7 @@ async def create_google_meeting_event(
 
     return GoogleCreatedEvent(
         event_id=data["id"],
+        event_url=data.get("htmlLink"),
         meet_url=data.get("hangoutLink"),
     )
 

@@ -176,6 +176,7 @@ async def complete_google_oauth(
     encrypted_access_token: str,
     encrypted_refresh_token: str | None,
     expires_at: datetime | None,
+    google_email: str | None = None,
 ) -> OAuthCredential:
     credential = await get_google_oauth_credential(session, owner_user_id)
     if credential is None:
@@ -194,6 +195,8 @@ async def complete_google_oauth(
     profile = await get_owner_profile(session, owner_user_id)
     if profile is not None:
         profile.google_status = "active"
+        if google_email:
+            profile.google_email = google_email.strip()
 
     session.add(
         AuditLog(
@@ -299,6 +302,37 @@ async def complete_client_registration(
         )
     )
     return user
+
+
+async def list_clients(session: AsyncSession) -> list[User]:
+    result = await session.execute(
+        select(User)
+        .where(User.role != "owner")
+        .order_by(User.status.asc(), User.full_name.asc(), User.id.asc())
+    )
+    return list(result.scalars().all())
+
+
+async def set_client_status(
+    session: AsyncSession,
+    *,
+    client: User,
+    status: str,
+    actor_user_id: int,
+) -> User:
+    if client.role == "owner":
+        raise ValueError("Owner status cannot be changed with client management")
+
+    client.status = status
+    session.add(
+        AuditLog(
+            actor_user_id=actor_user_id,
+            action=f"client.status.{status}",
+            entity_type="user",
+            entity_id=str(client.id),
+        )
+    )
+    return client
 
 
 async def create_booking_draft(session: AsyncSession, client_id: int) -> BookingDraft:
@@ -441,9 +475,11 @@ async def update_meeting_google_data(
     *,
     meeting: Meeting,
     google_event_id: str,
+    google_event_url: str | None,
     google_meet_url: str | None,
 ) -> Meeting:
     meeting.google_event_id = google_event_id
+    meeting.google_event_url = google_event_url
     meeting.google_meet_url = google_meet_url
     session.add(
         AuditLog(

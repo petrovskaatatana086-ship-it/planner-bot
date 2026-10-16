@@ -24,6 +24,18 @@ from app.security import decrypt_secret, encrypt_secret
 TOKEN_REFRESH_MARGIN = timedelta(minutes=5)
 
 
+def _build_google_event_description(request: BookingRequest, client: User) -> str:
+    lines = [
+        f"Название встречи: {request.title}",
+        f"Комментарий пользователя: {request.comment or 'нет'}",
+        f"Email пользователя: {client.email or 'не указан'}",
+        f"Telegram display name: {client.full_name}",
+        f"Telegram username: @{client.username}" if client.username else "Telegram username: не указан",
+        "Служебная пометка: событие создано через Telegram-бота.",
+    ]
+    return "\n".join(lines)
+
+
 async def get_valid_google_access_token(
     session: AsyncSession,
     *,
@@ -124,7 +136,7 @@ async def create_google_event_for_meeting(
         access_token,
         calendar_id=profile.calendar_id,
         title=request.title,
-        description=request.comment,
+        description=_build_google_event_description(request, client),
         start_at=request.start_at,
         end_at=request.end_at,
         attendee_email=client.email,
@@ -134,6 +146,7 @@ async def create_google_event_for_meeting(
         session,
         meeting=meeting,
         google_event_id=event.event_id,
+        google_event_url=event.event_url,
         google_meet_url=event.meet_url,
     )
 

@@ -119,6 +119,7 @@ class Meeting(Base):
     end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")
     google_event_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    google_event_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     google_meet_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="confirmed", index=True)
     proposed_start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

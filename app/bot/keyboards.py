@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 from app.domain.booking import format_moscow_date
 
@@ -10,7 +10,6 @@ def client_main_menu() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="Записаться на встречу")],
             [KeyboardButton(text="Мои заявки"), KeyboardButton(text="Мои встречи")],
-            [KeyboardButton(text="Мой профиль"), KeyboardButton(text="Поддержка")],
         ],
         resize_keyboard=True,
     )
@@ -94,4 +93,15 @@ def booking_confirmation_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton(text="Отмена")],
         ],
         resize_keyboard=True,
+    )
+
+
+def owner_request_actions_keyboard(request_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Согласовать", callback_data=f"approve_request:{request_id}"),
+                InlineKeyboardButton(text="Отклонить", callback_data=f"reject_request:{request_id}"),
+            ]
+        ]
     )

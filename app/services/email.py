@@ -27,6 +27,7 @@ async def send_booking_approved_email(
     request: BookingRequest,
     meeting: Meeting,
 ) -> bool:
+    calendar_line = f"\nСсылка на событие в Google Calendar: {meeting.google_event_url}" if meeting.google_event_url else ""
     meet_line = f"\nСсылка Google Meet: {meeting.google_meet_url}" if meeting.google_meet_url else ""
     return await _send_email(
         settings,
@@ -37,6 +38,7 @@ async def send_booking_approved_email(
             f"Ваша заявка #{request.id} подтверждена.\n"
             f"Дата и время: {format_moscow_dt(meeting.start_at)} МСК\n"
             f"Тема: {meeting.title}"
+            f"{calendar_line}"
             f"{meet_line}\n\n"
             "Если планы изменятся, пожалуйста, сообщите заранее."
         ),
@@ -71,6 +73,7 @@ async def send_meeting_rescheduled_email(
     reason: str | None = None,
 ) -> bool:
     reason_line = f"\nКомментарий: {reason}" if reason else ""
+    calendar_line = f"\nСсылка на событие в Google Calendar: {meeting.google_event_url}" if meeting.google_event_url else ""
     meet_line = f"\nСсылка Google Meet: {meeting.google_meet_url}" if meeting.google_meet_url else ""
     return await _send_email(
         settings,
@@ -81,6 +84,7 @@ async def send_meeting_rescheduled_email(
             f"Встреча #{meeting.id} перенесена.\n"
             f"Новое время: {format_moscow_dt(meeting.start_at)} МСК\n"
             f"Тема: {meeting.title}"
+            f"{calendar_line}"
             f"{meet_line}"
             f"{reason_line}\n\n"
             "Пожалуйста, проверьте, что новое время вам подходит."

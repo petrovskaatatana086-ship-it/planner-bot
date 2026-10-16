@@ -2,12 +2,17 @@ import asyncio
 import unittest
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from unittest.mock import patch
 
 from app.config import Settings
 from app.db.repositories import ensure_user_stub, get_google_oauth_credential, mark_google_oauth_pending
 from app.db.session import create_schema, make_sessionmaker
-from app.integrations.google_oauth import build_google_oauth_link, google_oauth_is_configured
-from app.integrations.google_oauth import parse_oauth_state
+from app.integrations.google_oauth import (
+    build_google_oauth_link,
+    fetch_google_account_email,
+    google_oauth_is_configured,
+    parse_oauth_state,
+)
 
 
 class GoogleOAuthTest(unittest.TestCase):
@@ -69,6 +74,38 @@ class GoogleOAuthTest(unittest.TestCase):
             finally:
                 if db_path.exists():
                     db_path.unlink()
+
+        asyncio.run(run())
+
+    def test_google_account_email_is_loaded_from_userinfo(self) -> None:
+        class FakeResponse:
+            status = 200
+
+            async def json(self, content_type=None):
+                return {"email": "owner@gmail.com"}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        class FakeSession:
+            def get(self, url, headers=None, timeout=None):
+                self.url = url
+                self.headers = headers
+                return FakeResponse()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+        async def run() -> None:
+            with patch("app.integrations.google_oauth.ClientSession", return_value=FakeSession()):
+                email = await fetch_google_account_email("access-token")
+            self.assertEqual(email, "owner@gmail.com")
 
         asyncio.run(run())
 

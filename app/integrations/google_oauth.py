@@ -9,6 +9,7 @@ from app.config import Settings
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 GOOGLE_SCOPES = (
     "openid",
     "email",
@@ -119,3 +120,18 @@ async def refresh_access_token(settings: Settings, refresh_token: str) -> Google
         token_type=data.get("token_type", "Bearer"),
         id_token=data.get("id_token"),
     )
+
+
+async def fetch_google_account_email(access_token: str) -> str:
+    headers = {"Authorization": f"Bearer {access_token}"}
+    async with ClientSession() as session:
+        async with session.get(GOOGLE_USERINFO_URL, headers=headers, timeout=30) as response:
+            data = await response.json(content_type=None)
+            if response.status >= 400:
+                message = data.get("error", {}).get("message") or "Google userinfo error"
+                raise ValueError(message)
+
+    email = (data.get("email") or "").strip()
+    if not email:
+        raise ValueError("Google account email is missing")
+    return email

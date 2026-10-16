@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from datetime import datetime, timedelta, timezone
 
@@ -13,6 +13,7 @@ from app.bot.keyboards import (
     client_main_menu,
     confirm_registration_keyboard,
     consent_keyboard,
+    owner_request_actions_keyboard,
     owner_main_menu,
 )
 from app.bot.states import Booking, GoogleCalendarSelection, Registration, Rejection
@@ -34,12 +35,14 @@ from app.db.repositories import (
     get_owner_profile,
     list_client_meetings,
     list_client_requests,
+    list_clients,
     list_pending_requests,
     mark_google_oauth_pending,
     reject_booking_request,
     reject_meeting_reschedule,
     request_meeting_reschedule,
     reschedule_meeting,
+    set_client_status,
     set_owner_google_calendar,
     update_owner_profile_field,
 )
@@ -98,6 +101,12 @@ def _booking_summary(data: dict) -> str:
     )
 
 
+def _invitation_email_line(email: str | None) -> str:
+    if not email:
+        return ""
+    return f"\n\nПриглашение на встречу будет отправлено на: {email}"
+
+
 def _request_card(request, client=None) -> str:
     client_line = ""
     if client is not None:
@@ -113,6 +122,9 @@ def _request_card(request, client=None) -> str:
 
 def _profile_text(profile) -> str:
     booking_status = "включена" if profile.booking_enabled else "выключена"
+    google_line = profile.google_status
+    if profile.google_email:
+        google_line = f"{google_line} ({profile.google_email})"
     return (
         "Настройки встреч:\n"
         f"Запись: {booking_status}\n"
@@ -121,7 +133,7 @@ def _profile_text(profile) -> str:
         f"Дневной лимит: {profile.daily_limit}\n"
         f"Горизонт записи: {profile.booking_horizon_days} дн.\n"
         f"Минимум до встречи: {profile.min_booking_notice_hours} ч.\n"
-        f"Google: {profile.google_status}\n\n"
+        f"Google: {google_line}\n\n"
         "Команды:\n"
         "Длительность 60\n"
         "Перерыв 15\n"
@@ -151,6 +163,24 @@ async def _load_user(message: Message, settings: Settings, session_factory: asyn
         return user
 
 
+async def _load_callback_user(callback: CallbackQuery, settings: Settings, session_factory: async_sessionmaker):
+    callback_user = callback.from_user
+    if callback_user is None:
+        return None
+
+    async with session_factory() as session:
+        user = await ensure_user_stub(
+            session,
+            telegram_id=callback_user.id,
+            owner_telegram_id=settings.owner_telegram_id,
+            full_name=callback_user.full_name or callback_user.username or str(callback_user.id),
+            username=callback_user.username,
+        )
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
 async def _require_registered_client(message: Message, settings: Settings, session_factory):
     user = await _load_user(message, settings, session_factory)
     if user is None:
@@ -162,7 +192,90 @@ async def _require_registered_client(message: Message, settings: Settings, sessi
     if not user.email or not user.consent_at:
         await message.answer("Сначала завершите регистрацию через /start.")
         return None
+    if user.status != "active":
+        await message.answer("Ваш доступ к записи сейчас ограничен. Напишите специалисту для уточнения.")
+        return None
     return user
+
+
+def _client_status_label(status: str) -> str:
+    if status == "active":
+        return "активен"
+    if status == "blocked":
+        return "заблокирован"
+    return status
+
+
+def _client_card(client: User) -> str:
+    return (
+        f"#{client.id} {client.full_name}\n"
+        f"Email: {client.email or 'не указан'}\n"
+        f"Telegram ID: {client.telegram_id}\n"
+        f"Статус: {_client_status_label(client.status)}"
+    )
+
+
+async def _approve_request_by_id(
+    request_id: int,
+    *,
+    owner: User,
+    bot,
+    settings: Settings,
+    session_factory,
+) -> tuple[bool, str]:
+    async with session_factory() as session:
+        request = await get_booking_request(session, request_id)
+        if request is None or request.status != "pending":
+            return False, "Заявка не найдена или уже обработана."
+        client_user = await session.get(User, request.client_id)
+        if client_user is None:
+            return False, "Клиент заявки не найден."
+        meeting = await approve_booking_request(session, request=request, actor_user_id=owner.id)
+        try:
+            await create_google_event_for_meeting(
+                session,
+                settings=settings,
+                owner_user_id=owner.id,
+                request=request,
+                meeting=meeting,
+                client=client_user,
+            )
+        except Exception as exc:
+            await session.rollback()
+            return False, (
+                "Не удалось создать событие Google Calendar. "
+                f"Заявка не подтверждена.\nОшибка: {exc}"
+            )
+        await session.commit()
+        client_id = request.client_id
+        meet_url = meeting.google_meet_url
+        calendar_url = meeting.google_event_url
+
+    async with session_factory() as session:
+        client_requests = await list_client_requests(session, client_id)
+        client_request = next((item for item in client_requests if item.id == request_id), None)
+        client_user = None
+        if client_request is not None:
+            client_user = await session.get(User, client_id)
+
+    if client_user is not None:
+        calendar_line = f"\nGoogle Calendar: {calendar_url}" if calendar_url else ""
+        meet_line = f"\nGoogle Meet: {meet_url}" if meet_url else ""
+        await bot.send_message(
+            client_user.telegram_id,
+            f"Ваша заявка #{request_id} подтверждена. "
+            f"Время: {format_moscow_dt(client_request.start_at)} МСК."
+            f"{calendar_line}"
+            f"{meet_line}",
+        )
+        if client_request is not None:
+            await send_booking_approved_email(
+                settings,
+                client=client_user,
+                request=client_request,
+                meeting=meeting,
+            )
+    return True, f"Заявка #{request_id} подтверждена."
 
 
 @router.message(CommandStart())
@@ -181,6 +294,9 @@ async def start(message: Message, state: FSMContext, settings: Settings, session
         return
 
     if user.email and user.consent_at:
+        if user.status != "active":
+            await message.answer("Ваш доступ сейчас ограничен. Напишите специалисту для уточнения.")
+            return
         await message.answer(
             "Главное меню. Время указано по Москве, МСК.",
             reply_markup=client_main_menu(),
@@ -318,9 +434,9 @@ async def start_booking(message: Message, state: FSMContext, settings: Settings,
         return
 
     await state.set_state(Booking.waiting_for_date)
-    await state.update_data(duration=duration, horizon=horizon, notice=notice)
+    await state.update_data(duration=duration, horizon=horizon, notice=notice, invitation_email=user.email)
     await message.answer(
-        "Выберите дату кнопкой ниже.",
+        "Выберите дату кнопкой ниже." + _invitation_email_line(user.email),
         reply_markup=booking_dates_keyboard(dates),
     )
 
@@ -352,7 +468,7 @@ async def choose_date(message: Message, state: FSMContext, settings: Settings, s
             min_notice_hours=data.get("notice", 24),
         )
         await message.answer(
-            "Выберите дату кнопкой ниже.",
+            "Выберите дату кнопкой ниже." + _invitation_email_line(data.get("invitation_email")),
             reply_markup=booking_dates_keyboard(allowed_dates),
         )
         return
@@ -365,7 +481,7 @@ async def choose_date(message: Message, state: FSMContext, settings: Settings, s
     )
     if selected_date not in allowed_dates:
         await message.answer(
-            "Эта дата недоступна. Выберите дату кнопкой из списка.",
+            "Эта дата недоступна. Выберите дату кнопкой из списка." + _invitation_email_line(data.get("invitation_email")),
             reply_markup=booking_dates_keyboard(allowed_dates),
         )
         return
@@ -396,7 +512,7 @@ async def choose_date(message: Message, state: FSMContext, settings: Settings, s
     )
     if not slots:
         await message.answer(
-            "На эту дату свободных слотов уже нет. Выберите другую дату.",
+            "На эту дату свободных слотов уже нет. Выберите другую дату." + _invitation_email_line(data.get("invitation_email")),
             reply_markup=booking_dates_keyboard(allowed_dates),
         )
         return
@@ -404,7 +520,7 @@ async def choose_date(message: Message, state: FSMContext, settings: Settings, s
     await state.update_data(selected_date=selected_date, slots=slots)
     await state.set_state(Booking.waiting_for_time)
     await message.answer(
-        "Выберите время кнопкой ниже.",
+        "Выберите время кнопкой ниже." + _invitation_email_line(data.get("invitation_email")),
         reply_markup=booking_times_keyboard(slots),
     )
 
@@ -415,7 +531,7 @@ async def choose_time(message: Message, state: FSMContext, settings: Settings, s
     if selected_time is None:
         data = await state.get_data()
         await message.answer(
-            "Выберите время кнопкой ниже.",
+            "Выберите время кнопкой ниже." + _invitation_email_line(data.get("invitation_email")),
             reply_markup=booking_times_keyboard(data.get("slots", [])),
         )
         return
@@ -429,7 +545,7 @@ async def choose_time(message: Message, state: FSMContext, settings: Settings, s
 
     if selected_start is None:
         await message.answer(
-            "Это время недоступно. Выберите время кнопкой из списка.",
+            "Это время недоступно. Выберите время кнопкой из списка." + _invitation_email_line(data.get("invitation_email")),
             reply_markup=booking_times_keyboard(data["slots"]),
         )
         return
@@ -493,6 +609,7 @@ async def enter_booking_comment(message: Message, state: FSMContext):
     await state.set_state(Booking.waiting_for_confirmation)
     await message.answer(
         _booking_summary(data)
+        + _invitation_email_line(data.get("invitation_email"))
         + "\n\nОтправьте «Отправить заявку», «Изменить дату», «Изменить время», "
         "«Изменить название» или «Изменить комментарий».",
         reply_markup=booking_confirmation_keyboard(),
@@ -509,7 +626,7 @@ async def booking_change_time(message: Message, state: FSMContext):
     data = await state.get_data()
     await state.set_state(Booking.waiting_for_time)
     await message.answer(
-        "Выберите время кнопкой ниже.",
+        "Выберите время кнопкой ниже." + _invitation_email_line(data.get("invitation_email")),
         reply_markup=booking_times_keyboard(data["slots"]),
     )
 
@@ -589,8 +706,11 @@ async def submit_booking(message: Message, state: FSMContext, settings: Settings
             f"Клиент: {user.full_name}, {user.email}\n"
             f"Дата и время: {format_moscow_dt(data['selected_start'])} МСК\n"
             f"Название: {data['title']}\n\n"
-            f"Для подтверждения отправьте: Подтвердить {request_id}\n"
-            f"Для отклонения отправьте: Отклонить {request_id}",
+            f"Согласовать: Подтвердить {request_id}\n"
+            f"Согласовать: Согласовать {request_id}\n"
+            f"Не согласовывать: Отклонить {request_id}\n"
+            f"Не согласовывать: Не согласовывать {request_id}",
+            reply_markup=owner_request_actions_keyboard(request_id),
         )
     except Exception:
         await message.answer("Заявка сохранена, но уведомление владельцу не отправилось.")
@@ -656,14 +776,52 @@ async def pending_requests(message: Message, settings: Settings, session_factory
         await message.answer("Новых заявок нет.")
         return
 
-    lines = []
     for request, client in requests:
-        lines.append(
+        await message.answer(
             _request_card(request, client)
             + f"\nПодтвердить: Подтвердить {request.id}"
+            + f"\nСогласовать: Согласовать {request.id}"
             + f"\nОтклонить: Отклонить {request.id}"
+            + f"\nНе согласовывать: Не согласовывать {request.id}",
+            reply_markup=owner_request_actions_keyboard(request.id),
         )
-    await message.answer("\n\n".join(lines))
+
+
+@router.callback_query(F.data.regexp(r"^approve_request:\d+$"))
+async def approve_request_callback(callback: CallbackQuery, settings: Settings, session_factory):
+    owner = await _load_callback_user(callback, settings, session_factory)
+    if not owner or owner.role != OWNER_ROLE:
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    request_id = int((callback.data or "").split(":")[-1])
+    ok, result_text = await _approve_request_by_id(
+        request_id,
+        owner=owner,
+        bot=callback.bot,
+        settings=settings,
+        session_factory=session_factory,
+    )
+    callback_message = callback.message
+    if isinstance(callback_message, Message):
+        await callback_message.answer(result_text)
+    await callback.answer("Заявка согласована" if ok else "Не удалось обработать заявку", show_alert=not ok)
+
+
+@router.callback_query(F.data.regexp(r"^reject_request:\d+$"))
+async def reject_request_callback(callback: CallbackQuery, state: FSMContext, settings: Settings, session_factory):
+    owner = await _load_callback_user(callback, settings, session_factory)
+    if not owner or owner.role != OWNER_ROLE:
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    request_id = int((callback.data or "").split(":")[-1])
+    await state.update_data(reject_request_id=request_id)
+    await state.set_state(Rejection.waiting_for_reason)
+    callback_message = callback.message
+    if isinstance(callback_message, Message):
+        await callback_message.answer(f"Укажите причину отказа для заявки #{request_id}.")
+    await callback.answer("Жду причину отказа")
 
 
 @router.message(F.text == "Настройки встреч")
@@ -756,8 +914,10 @@ async def google_calendar(message: Message, settings: Settings, session_factory)
 
     if credential is not None and credential.status == "active":
         calendar_id = profile.calendar_id if profile is not None and profile.calendar_id else "не выбран"
+        google_email_line = f"Google-аккаунт: {profile.google_email}\n" if profile and profile.google_email else ""
         await message.answer(
             "Google Calendar подключен.\n\n"
+            f"{google_email_line}"
             f"Основной календарь: {calendar_id}\n\n"
             "Чтобы выбрать календарь, отправьте «Выбрать календарь Google».",
         )
@@ -875,7 +1035,7 @@ async def save_google_calendar_selection(
     )
 
 
-@router.message(F.text.regexp(r"^Подтвердить\s+\d+$"))
+@router.message(F.text.regexp(r"^(Подтвердить|Согласовать)\s+\d+$"))
 async def approve_request(message: Message, settings: Settings, session_factory):
     owner = await _load_user(message, settings, session_factory)
     if not owner or owner.role != OWNER_ROLE:
@@ -883,63 +1043,17 @@ async def approve_request(message: Message, settings: Settings, session_factory)
         return
 
     request_id = int((message.text or "").split()[-1])
-    async with session_factory() as session:
-        request = await get_booking_request(session, request_id)
-        if request is None or request.status != "pending":
-            await message.answer("Заявка не найдена или уже обработана.")
-            return
-        client_user = await session.get(User, request.client_id)
-        if client_user is None:
-            await message.answer("Клиент заявки не найден.")
-            return
-        meeting = await approve_booking_request(session, request=request, actor_user_id=owner.id)
-        try:
-            await create_google_event_for_meeting(
-                session,
-                settings=settings,
-                owner_user_id=owner.id,
-                request=request,
-                meeting=meeting,
-                client=client_user,
-            )
-        except Exception as exc:
-            await session.rollback()
-            await message.answer(
-                "Не удалось создать событие Google Calendar. "
-                f"Заявка не подтверждена.\nОшибка: {exc}"
-            )
-            return
-        await session.commit()
-        client_id = request.client_id
-        meet_url = meeting.google_meet_url
-
-    await message.answer(f"Заявка #{request_id} подтверждена.")
-
-    async with session_factory() as session:
-        client_requests = await list_client_requests(session, client_id)
-        client_request = next((item for item in client_requests if item.id == request_id), None)
-        client_user = None
-        if client_request is not None:
-            client_user = await session.get(User, client_id)
-
-    if client_user is not None:
-        meet_line = f"\nGoogle Meet: {meet_url}" if meet_url else ""
-        await message.bot.send_message(
-            client_user.telegram_id,
-            f"Ваша заявка #{request_id} подтверждена. "
-            f"Время: {format_moscow_dt(client_request.start_at)} МСК."
-            f"{meet_line}",
-        )
-        if client_request is not None:
-            await send_booking_approved_email(
-                settings,
-                client=client_user,
-                request=client_request,
-                meeting=meeting,
-            )
+    _ok, result_text = await _approve_request_by_id(
+        request_id,
+        owner=owner,
+        bot=message.bot,
+        settings=settings,
+        session_factory=session_factory,
+    )
+    await message.answer(result_text)
 
 
-@router.message(F.text.regexp(r"^Отклонить\s+\d+$"))
+@router.message(F.text.regexp(r"^(Отклонить|Не согласовывать)\s+\d+$"))
 async def start_reject_request(message: Message, state: FSMContext, settings: Settings, session_factory):
     owner = await _load_user(message, settings, session_factory)
     if not owner or owner.role != OWNER_ROLE:
@@ -1415,6 +1529,87 @@ async def system_menu(message: Message, settings: Settings, session_factory):
         )
         return
     await message.answer("У вас нет доступа к управлению системой")
+
+
+@router.message(F.text == "Клиенты")
+async def clients_menu(message: Message, settings: Settings, session_factory):
+    owner = await _load_user(message, settings, session_factory)
+    if not owner or owner.role != OWNER_ROLE:
+        await message.answer("У вас нет доступа к управлению системой")
+        return
+
+    async with session_factory() as session:
+        clients = await list_clients(session)
+
+    if not clients:
+        await message.answer("Клиентов пока нет.")
+        return
+
+    cards = [
+        _client_card(client)
+        for client in clients
+    ]
+    await message.answer(
+        "Клиенты:\n\n"
+        + "\n\n".join(cards)
+        + "\n\nКоманды:\n"
+        "Заблокировать клиента 12\n"
+        "Разблокировать клиента 12"
+    )
+
+
+@router.message(F.text.regexp(r"^Заблокировать клиента\s+\d+$"))
+async def block_client(message: Message, settings: Settings, session_factory):
+    owner = await _load_user(message, settings, session_factory)
+    if not owner or owner.role != OWNER_ROLE:
+        await message.answer("У вас нет доступа к управлению системой")
+        return
+
+    client_id = int((message.text or "").split()[-1])
+    async with session_factory() as session:
+        client = await session.get(User, client_id)
+        if client is None or client.role == OWNER_ROLE:
+            await message.answer("Клиент не найден.")
+            return
+        if client.status == "blocked":
+            await message.answer(f"Клиент #{client.id} уже заблокирован.")
+            return
+        await set_client_status(
+            session,
+            client=client,
+            status="blocked",
+            actor_user_id=owner.id,
+        )
+        await session.commit()
+
+    await message.answer(f"Клиент #{client_id} заблокирован.")
+
+
+@router.message(F.text.regexp(r"^Разблокировать клиента\s+\d+$"))
+async def unblock_client(message: Message, settings: Settings, session_factory):
+    owner = await _load_user(message, settings, session_factory)
+    if not owner or owner.role != OWNER_ROLE:
+        await message.answer("У вас нет доступа к управлению системой")
+        return
+
+    client_id = int((message.text or "").split()[-1])
+    async with session_factory() as session:
+        client = await session.get(User, client_id)
+        if client is None or client.role == OWNER_ROLE:
+            await message.answer("Клиент не найден.")
+            return
+        if client.status == "active":
+            await message.answer(f"Клиент #{client.id} уже активен.")
+            return
+        await set_client_status(
+            session,
+            client=client,
+            status="active",
+            actor_user_id=owner.id,
+        )
+        await session.commit()
+
+    await message.answer(f"Клиент #{client_id} разблокирован.")
 
 
 @router.message(

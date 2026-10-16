@@ -7,6 +7,8 @@ from app.bot.keyboards import (
     booking_confirmation_keyboard,
     booking_dates_keyboard,
     booking_times_keyboard,
+    client_main_menu,
+    owner_request_actions_keyboard,
 )
 from app.domain.booking import (
     MOSCOW_TZ,
@@ -84,6 +86,25 @@ class BookingDomainTest(unittest.TestCase):
 
         self.assertIn("Без комментария", labels)
         self.assertIn("Отмена", labels)
+
+    def test_client_main_menu_does_not_contain_profile_or_support(self) -> None:
+        keyboard = client_main_menu()
+        labels = [button.text for row in keyboard.keyboard for button in row]
+
+        self.assertIn("Записаться на встречу", labels)
+        self.assertIn("Мои заявки", labels)
+        self.assertIn("Мои встречи", labels)
+        self.assertNotIn("Мой профиль", labels)
+        self.assertNotIn("Поддержка", labels)
+
+    def test_owner_request_actions_keyboard_contains_inline_buttons(self) -> None:
+        keyboard = owner_request_actions_keyboard(5)
+        buttons = [button for row in keyboard.inline_keyboard for button in row]
+
+        self.assertEqual(buttons[0].text, "Согласовать")
+        self.assertEqual(buttons[0].callback_data, "approve_request:5")
+        self.assertEqual(buttons[1].text, "Отклонить")
+        self.assertEqual(buttons[1].callback_data, "reject_request:5")
 
 
 if __name__ == "__main__":

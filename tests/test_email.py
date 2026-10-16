@@ -61,6 +61,7 @@ class EmailNotificationServiceTest(unittest.IsolatedAsyncioTestCase):
             id=7,
             title="Созвон по проекту",
             start_at=datetime(2026, 7, 28, 9, 0, tzinfo=timezone.utc),
+            google_event_url="https://calendar.google.com/calendar/event?eid=test-room",
             google_meet_url="https://meet.google.com/test-room",
         )
 
@@ -87,6 +88,7 @@ class EmailNotificationServiceTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kwargs["to_email"], "client@example.com")
         self.assertEqual(kwargs["subject"], "Заявка #12 подтверждена")
         self.assertIn("28.07.2026 12:00 МСК", kwargs["body"])
+        self.assertIn("https://calendar.google.com/calendar/event?eid=test-room", kwargs["body"])
         self.assertIn("https://meet.google.com/test-room", kwargs["body"])
 
     async def test_cancellation_email_contains_reason(self) -> None:

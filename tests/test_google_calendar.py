@@ -19,6 +19,7 @@ from app.db.repositories import (
 from app.db.session import create_schema, make_sessionmaker
 from app.domain.booking import MOSCOW_TZ
 from app.integrations.google_calendar import GoogleBusyPeriod, busy_periods_to_slot_starts
+from app.services.google import _build_google_event_description
 
 
 class GoogleCalendarTest(unittest.TestCase):
@@ -83,16 +84,49 @@ class GoogleCalendarTest(unittest.TestCase):
                         session,
                         meeting=meeting,
                         google_event_id="event-1",
+                        google_event_url="https://calendar.google.com/calendar/event?eid=test",
                         google_meet_url="https://meet.google.com/abc-defg-hij",
                     )
 
                     self.assertEqual(meeting.google_event_id, "event-1")
+                    self.assertEqual(
+                        meeting.google_event_url,
+                        "https://calendar.google.com/calendar/event?eid=test",
+                    )
                     self.assertEqual(meeting.google_meet_url, "https://meet.google.com/abc-defg-hij")
             finally:
                 if db_path.exists():
                     db_path.unlink()
 
         asyncio.run(run())
+
+    def test_google_event_description_contains_client_details(self) -> None:
+        request = type(
+            "RequestStub",
+            (),
+            {
+                "title": "Встреча по продажам",
+                "comment": "Срочно обсудить оплату",
+            },
+        )()
+        client = type(
+            "ClientStub",
+            (),
+            {
+                "full_name": "Алексей Васильев",
+                "email": "traffic.trade2020@gmail.com",
+                "username": "AleksVasilev",
+            },
+        )()
+
+        description = _build_google_event_description(request, client)
+
+        self.assertIn("Название встречи: Встреча по продажам", description)
+        self.assertIn("Комментарий пользователя: Срочно обсудить оплату", description)
+        self.assertIn("Email пользователя: traffic.trade2020@gmail.com", description)
+        self.assertIn("Telegram display name: Алексей Васильев", description)
+        self.assertIn("Telegram username: @AleksVasilev", description)
+        self.assertIn("событие создано через Telegram-бота", description)
 
     def test_meeting_can_be_rescheduled_and_cancelled_locally(self) -> None:
         async def run() -> None:

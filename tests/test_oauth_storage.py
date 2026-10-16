@@ -54,6 +54,7 @@ class OAuthStorageTest(unittest.TestCase):
                         encrypted_access_token=encrypted_access,
                         encrypted_refresh_token=encrypted_refresh,
                         expires_at=datetime.now(timezone.utc),
+                        google_email="owner@gmail.com",
                     )
                     profile = await get_owner_profile(session, owner.id)
                     found = await get_google_oauth_credential(session, owner.id)
@@ -61,6 +62,7 @@ class OAuthStorageTest(unittest.TestCase):
                     self.assertEqual(credential.status, "active")
                     self.assertEqual(found.status, "active")
                     self.assertEqual(profile.google_status, "active")
+                    self.assertEqual(profile.google_email, "owner@gmail.com")
                     self.assertNotEqual(found.encrypted_access_token, "access-token")
                     self.assertEqual(decrypt_secret(found.encrypted_access_token, key), "access-token")
                     self.assertEqual(decrypt_secret(found.encrypted_refresh_token, key), "refresh-token")
@@ -111,6 +113,7 @@ class OAuthStorageTest(unittest.TestCase):
                             settings.oauth_encryption_key,
                         ),
                         expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+                        google_email="owner@gmail.com",
                     )
 
                     async def fake_refresh(_settings, refresh_token):
