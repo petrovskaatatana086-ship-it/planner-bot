@@ -69,7 +69,8 @@ finally:
  stage.rmdir()
 '''
     options = ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
-               '-o', f'UserKnownHostsFile={DIRECTORY / "known_hosts"}', '-o', 'ConnectTimeout=15']
+               '-o', f'UserKnownHostsFile="{(DIRECTORY / "known_hosts").as_posix()}"',
+               '-o', 'ConnectTimeout=15']
     run([program('ssh'), *options, f'{server_user}@{HOST}',
          'sudo -n python3 -c ' + shlex.quote(bootstrap)], input=payload.getvalue())
     # Prove the new key can authenticate, but cannot open a general-purpose shell.
