@@ -1,7 +1,7 @@
 import logging
 
 from aiohttp import web
-from aiogram import Bot
+from aiogram import Bot, Dispatcher
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.config import Settings
@@ -13,22 +13,35 @@ from app.integrations.google_oauth import (
     parse_oauth_state,
 )
 from app.security import encrypt_secret
+from app.telegram import TELEGRAM_STATE, TelegramState, register_webhook
 
 logger = logging.getLogger(__name__)
 
 
-def create_web_app(settings: Settings, session_factory: async_sessionmaker, bot: Bot) -> web.Application:
+def create_web_app(
+    settings: Settings, session_factory: async_sessionmaker, bot: Bot,
+    dispatcher: Dispatcher | None = None,
+) -> web.Application:
     app = web.Application()
     app["settings"] = settings
     app["session_factory"] = session_factory
     app["bot"] = bot
+    app[TELEGRAM_STATE] = TelegramState()
     app.router.add_get("/google/oauth/callback", google_oauth_callback)
     app.router.add_get("/health", health)
+    if settings.bot_mode == "webhook":
+        if dispatcher is None:
+            raise ValueError("Webhook mode requires a dispatcher")
+        register_webhook(app, dispatcher, bot, settings)
     return app
 
 
 async def health(request: web.Request) -> web.Response:
-    return web.json_response({"status": "ok"})
+    ready = request.app[TELEGRAM_STATE].ready
+    return web.json_response(
+        {"status": "ok" if ready else "starting", "transport": request.app["settings"].bot_mode},
+        status=200 if ready else 503,
+    )
 
 
 async def google_oauth_callback(request: web.Request) -> web.Response:
