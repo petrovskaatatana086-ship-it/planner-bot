@@ -27,7 +27,8 @@ async def main() -> None:
     dispatcher.include_router(router)
 
     web_app = create_web_app(settings, session_factory, bot)
-    runner = web.AppRunner(web_app)
+    # OAuth callback URLs contain one-time codes and state; keep them out of logs.
+    runner = web.AppRunner(web_app, access_log=None)
     await runner.setup()
     site = web.TCPSite(runner, settings.web_host, settings.web_port)
     await site.start()

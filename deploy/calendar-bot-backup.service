@@ -1,0 +1,13 @@
+[Unit]
+Description=Calendar bot SQLite backup
+ConditionPathExists=/opt/calendar-bot/data/planner.db
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/calendar-bot/deploy/backup_sqlite.py --database /opt/calendar-bot/data/planner.db --destination /var/backups/calendar-bot
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/calendar-bot
