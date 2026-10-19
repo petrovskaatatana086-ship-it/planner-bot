@@ -1,0 +1,34 @@
+# Copy into /opt/<unique-project>/compose.yml and configure .env first.
+name: ${PROJECT_NAME:?Set a unique PROJECT_NAME}
+
+services:
+  app:
+    image: ${APP_IMAGE:?Set a versioned application image}
+    user: "${APP_UID:?Set the image application UID}:${APP_GID:?Set the image application GID}"
+    env_file:
+      - path: app.env
+        format: raw
+    ports:
+      - "127.0.0.1:${HOST_PORT:?Set an unused host port}:${APP_PORT:?Set the container port}"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${MEMORY_LIMIT:-128m}
+    memswap_limit: ${MEMORY_SWAP_LIMIT:-192m}
+    cpus: ${CPU_LIMIT:-0.25}
+    pids_limit: 64
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+# Compose generates <PROJECT_NAME>_default: no shared external network.
+# Add an application-specific healthcheck before deployment.
