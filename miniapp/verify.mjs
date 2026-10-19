@@ -7,7 +7,7 @@ import {fileURLToPath, pathToFileURL} from "node:url";
 import {setTimeout as delay} from "node:timers/promises";
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-const out=path.resolve(root,"../docs/meetly-logs");
+const out=path.resolve(root,process.env.MEETLY_QA_OUTPUT||"../docs/meetly-logs");
 const profile=await mkdtemp(path.join(tmpdir(),"meetly-qa-"));
 const browser=process.env.MEETLY_BROWSER || "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe";
 const child=spawn(browser,["--headless","--disable-gpu","--no-first-run","--no-default-browser-check",`--user-data-dir=${profile}`,"--remote-debugging-port=0","about:blank"],{windowsHide:true,stdio:"ignore"});
@@ -58,6 +58,26 @@ try{
   await check("rejected request leaves incoming list", "!document.querySelector('[data-record=\"3\"]')");
   await evaluate("document.querySelector('[data-nav=calendar]').click()");
   await snapshot("desktop-owner",1440,1100,false);
+  await check("request summary counts decisions independently of cancellations", "document.querySelector('[data-count=all]').textContent==='4' && document.querySelector('[data-count=approved]').textContent==='2' && document.querySelector('[data-count=rejected]').textContent==='1' && document.querySelector('[data-count=pending]').textContent==='1'");
+  await evaluate("document.querySelector('[data-owner-filter=approved]').click()");
+  await check("approved filter includes cancelled previously approved request", "document.querySelectorAll('[data-record]').length===2 && Boolean(document.querySelector('[data-record=\"4\"]'))");
+  await evaluate("document.querySelector('[data-owner-filter=rejected]').click()");
+  await check("rejected filter shows rejected request", "document.querySelectorAll('[data-record]').length===1 && Boolean(document.querySelector('[data-record=\"3\"]'))");
+  await snapshot("mobile-owner-requests",390,1000,true);
+  await snapshot("narrow-owner-requests",320,1000,true);
+  await evaluate("document.querySelector('[data-nav=settings]').click()");
+  await check("settings form available to owner", "Boolean(document.querySelector('#settings-form'))");
+  await snapshot("desktop-owner-settings",1440,1100,false);
+  await snapshot("mobile-owner-settings",390,1000,true);
+  await snapshot("narrow-owner-settings",320,1000,true);
+  await evaluate("document.querySelector('[name=duration]').value='0'");
+  await check("invalid settings rejected by form validation", "!document.querySelector('#settings-form').checkValidity()");
+  await evaluate("document.querySelector('[name=duration]').value='30';document.querySelector('[name=buffer]').value='15';document.querySelector('[name=horizon]').value='30';document.querySelector('[name=notice]').value='0';document.querySelector('#settings-form').requestSubmit();document.querySelector('[data-nav=calendar]').click();document.querySelector('[data-nav=settings]').click()");
+  await check("settings retained between screens", "document.querySelector('[name=duration]').value==='30' && document.querySelector('[name=buffer]').value==='15' && document.querySelector('[name=horizon]').value==='30'");
+  await evaluate("document.querySelector('#role').value='client';document.querySelector('#role').dispatchEvent(new Event('change'))");
+  await check("settings update client calendar", "Boolean(document.querySelector('[data-time]')) && document.querySelector('#day-panel').textContent.includes('30') && !document.querySelector('[data-nav=settings]')");
+  await evaluate("document.querySelector('#role').value='owner';document.querySelector('#role').dispatchEvent(new Event('change'));document.querySelector('[data-nav=settings]').click();document.querySelector('[name=bookingEnabled]').checked=false;document.querySelector('#settings-form').requestSubmit();document.querySelector('#role').value='client';document.querySelector('#role').dispatchEvent(new Event('change'))");
+  await check("disabled booking removes available slots", "!document.querySelector('[data-time]') && !document.querySelector('#continue')");
   if(report.errors.length)throw new Error("Browser reported JavaScript errors");
   report.status="PASS";
 }catch(error){report.status="FAIL";report.failure=error.message;process.exitCode=1;}
