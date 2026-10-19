@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f2e9">
+  <title>Meetly — время для встречи</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#calendar" aria-label="Meetly — календарь"><span class="brand-symbol" aria-hidden="true">m.</span>meetly<span class="brand-dot">✳</span></a>
+      <p class="brand-caption">Время для важного.</p>
+      <nav aria-label="Основная навигация" id="navigation"></nav>
+      <div class="sidebar-note"><span aria-hidden="true">✳</span><p>Хорошая встреча<br>начинается с удобного времени.</p></div>
+      <label class="role-label" for="role">Посмотреть макет как</label>
+      <select id="role"><option value="client">Клиент</option><option value="owner">Администратор</option></select>
+      <p class="demo-label">Демонстрация · данные вымышлены</p>
+    </aside>
+    <main id="main" tabindex="-1">
+      <header class="topbar"><span>Личное пространство для встреч</span><div class="identity"><span id="identity-name">Анна</span><span class="avatar" id="avatar" aria-hidden="true">А</span></div></header>
+      <section class="hero"><div><p class="eyebrow" id="eyebrow">ВАШЕ ВРЕМЯ. ВАШ РИТМ.</p><h1 id="page-title">Найдём время<br>для встречи.</h1><p id="page-subtitle">Выберите удобный день — остальное просто.</p></div><div class="abstract-art" aria-hidden="true"><div class="orb"></div><div class="arch arch-one"></div><div class="arch arch-two"></div><span class="art-star">✳</span><span class="art-caption">make time<br>for what matters</span></div></section>
+      <div class="demo-banner"><span class="live-dot" aria-hidden="true"></span>Интерактивный макет. Заявки не отправляются в бот.</div>
+      <div id="workspace"></div>
+      <footer class="footer"><span>Meetly · С заботой о вашем времени</span><span>Все встречи по московскому времени</span></footer>
+    </main>
+  </div>
+  <dialog id="modal" aria-labelledby="modal-title"><button class="close-button" id="close-modal" aria-label="Закрыть">×</button><div id="modal-content"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-19T10:05:50.685Z",
+  "checks": [
+    {
+      "name": "calendar loads",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "booking form opens",
+      "result": "PASS"
+    },
+    {
+      "name": "review escapes user content",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-booking-review: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "booking appears in client list",
+      "result": "PASS"
+    },
+    {
+      "name": "owner sees incoming requests",
+      "result": "PASS"
+    },
+    {
+      "name": "owner approval visible to client",
+      "result": "PASS"
+    },
+    {
+      "name": "reschedule keeps original date visible",
+      "result": "PASS"
+    },
+    {
+      "name": "cancellation asks for confirmation",
+      "result": "PASS"
+    },
+    {
+      "name": "cancelled record removed from active list",
+      "result": "PASS"
+    },
+    {
+      "name": "cancelled record remains in history",
+      "result": "PASS"
+    },
+    {
+      "name": "rejected request leaves incoming list",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop-owner: no horizontal overflow",
+      "result": "PASS"
+    }
+  ],
+  "errors": [],
+  "status": "PASS"
+}

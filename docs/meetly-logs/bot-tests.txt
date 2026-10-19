@@ -1,0 +1,19 @@
+Date: 2026-10-19 (Europe/Moscow)
+Command: .\.venv\Scripts\python.exe -m unittest discover -s tests
+Exit code: 0
+Initial output: 44 progress dots. Completion output follows.
+
+...C:\Users\sukhorukov.da\My Projects\����������� �����_���\app\web.py:26: NotAppKeyWarning: It is recommended to use web.AppKey instances for keys.
+https://docs.aiohttp.org/en/stable/web_advanced.html#application-s-config
+  app["settings"] = settings
+C:\Users\sukhorukov.da\My Projects\����������� �����_���\app\web.py:27: NotAppKeyWarning: It is recommended to use web.AppKey instances for keys.
+https://docs.aiohttp.org/en/stable/web_advanced.html#application-s-config
+  app["session_factory"] = session_factory
+C:\Users\sukhorukov.da\My Projects\����������� �����_���\app\web.py:28: NotAppKeyWarning: It is recommended to use web.AppKey instances for keys.
+https://docs.aiohttp.org/en/stable/web_advanced.html#application-s-config
+  app["bot"] = bot
+...............
+----------------------------------------------------------------------
+Ran 62 tests in 2.516s
+
+OK

@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-19T10:04:43.868Z",
+  "checks": [
+    {
+      "name": "calendar loads",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "booking form opens",
+      "result": "PASS"
+    },
+    {
+      "name": "review escapes user content",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-booking-review: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "booking appears in client list",
+      "result": "PASS"
+    },
+    {
+      "name": "owner sees incoming requests",
+      "result": "PASS"
+    }
+  ],
+  "errors": [],
+  "status": "FAIL",
+  "failure": "Uncaught: SyntaxError: Failed to execute 'querySelector' on 'Document': '[data-record=4]' is not a valid selector.\n    at <anonymous>:1:10"
+}
