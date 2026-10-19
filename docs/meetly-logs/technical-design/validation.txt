@@ -1,0 +1,4 @@
+﻿Documentation links: PASS
+Required design concepts: PASS
+git diff --check: PASS
+Runtime tests: not run (documentation-only change)
