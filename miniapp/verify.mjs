@@ -17,7 +17,7 @@ let launchError;child.on("error",(error)=>{launchError=error;});
 const rpc=(method,params={})=>new Promise((resolve,reject)=>{const id=++sequence;const timer=setTimeout(()=>{pending.delete(id);reject(new Error(`CDP timeout: ${method}`));},12000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}));});
 const evaluate=async(expression)=>{const r=await rpc("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.text+": "+r.exceptionDetails.exception?.description);return r.result.value;};
 const check=async(name,expression)=>{if(!await evaluate(expression))throw new Error(`FAIL: ${name}`);report.checks.push({name,result:"PASS"});};
-const snapshot=async(name,width,height,mobile)=>{await rpc("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile});await delay(150);await check(`${name}: no horizontal overflow`,"document.documentElement.scrollWidth <= innerWidth");const image=await rpc("Page.captureScreenshot",{format:"png",captureBeyondViewport:true});await writeFile(path.join(out,`${name}.png`),Buffer.from(image.data,"base64"));};
+const snapshot=async(name,width,height,mobile)=>{await rpc("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile});await delay(150);await check(`${name}: no horizontal overflow`,`document.documentElement.scrollWidth <= ${width} && innerWidth === ${width}`);const image=await rpc("Page.captureScreenshot",{format:"png",captureBeyondViewport:true});await writeFile(path.join(out,`${name}.png`),Buffer.from(image.data,"base64"));};
 try{
   await mkdir(out,{recursive:true});
   let port;
@@ -78,6 +78,34 @@ try{
   await check("settings update client calendar", "Boolean(document.querySelector('[data-time]')) && document.querySelector('#day-panel').textContent.includes('30') && !document.querySelector('[data-nav=settings]')");
   await evaluate("document.querySelector('#role').value='owner';document.querySelector('#role').dispatchEvent(new Event('change'));document.querySelector('[data-nav=settings]').click();document.querySelector('[name=bookingEnabled]').checked=false;document.querySelector('#settings-form').requestSubmit();document.querySelector('#role').value='client';document.querySelector('#role').dispatchEvent(new Event('change'))");
   await check("disabled booking removes available slots", "!document.querySelector('[data-time]') && !document.querySelector('#continue')");
+  await rpc("Page.navigate",{url:pathToFileURL(path.join(root,"index.html")).href+"?mode=new"});
+  for(let n=0;n<50;n++){if(await evaluate("Boolean(document.querySelector('#consent-form'))"))break;await delay(100);}
+  await check("new client begins with consent and cannot access calendar", "Boolean(document.querySelector('#consent-form')) && !document.querySelector('[data-time]') && !document.querySelector('[data-nav=calendar]')");
+  await check("consent is required", "!document.querySelector('#consent-form').checkValidity()");
+  await snapshot("mobile-registration-consent",390,950,true);
+  await evaluate("document.querySelector('[name=consent]').checked=true;document.querySelector('#consent-form').requestSubmit()");
+  await check("name and email are required", "Boolean(document.querySelector('[name=email]')) && !document.querySelector('#registration-form').checkValidity()");
+  await snapshot("desktop-registration-details",1440,1100,false);
+  await snapshot("narrow-registration-details",320,1000,true);
+  await evaluate("document.querySelector('[name=fullName]').value='Тестовый клиент';document.querySelector('[name=email]').value='incorrect-address'");
+  await check("invalid email is rejected", "!document.querySelector('#registration-form').checkValidity()");
+  await evaluate("document.querySelector('[name=email]').value='new-client@example.com';document.querySelector('#registration-form').requestSubmit()");
+  await check("registration review shows entered email", "Boolean(document.querySelector('#registration-finish')) && document.querySelector('#workspace').textContent.includes('new-client@example.com')");
+  await snapshot("mobile-registration-review",390,950,true);
+  await evaluate("document.querySelector('#registration-edit').click()");
+  await check("editing preserves entered details", "document.querySelector('[name=email]').value==='new-client@example.com'");
+  await evaluate("document.querySelector('#registration-form').requestSubmit();document.querySelector('#registration-finish').click()");
+  await check("registered new client sees calendar and email", "Boolean(document.querySelector('[data-time]')) && document.querySelector('#identity-name').textContent==='Тестовый клиент' && document.querySelector('#workspace').textContent.includes('new-client@example.com')");
+  await evaluate("document.querySelector('[data-nav=list]').click()");
+  await check("new client has no existing client records", "document.querySelectorAll('[data-record]').length===0");
+  await evaluate("document.querySelector('[data-nav=calendar]').click();document.querySelector('[data-time]').click();document.querySelector('#continue').click();document.querySelector('[name=title]').value='Запись нового клиента';document.querySelector('#booking-form').requestSubmit();document.querySelector('#send-booking').click()");
+  await check("new client can submit own first request", "document.querySelectorAll('[data-record]').length===1");
+  await evaluate("document.querySelector('#role').value='owner';document.querySelector('#role').dispatchEvent(new Event('change'));document.querySelector('[data-nav=list]').click();document.querySelector('[data-record=\"4\"]').click()");
+  await check("owner sees registered email on new request", "document.querySelector('#modal-content').textContent.includes('new-client@example.com') && document.querySelector('#modal-content').textContent.includes('Тестовый клиент')");
+  await evaluate("document.querySelector('#close-modal').click();document.querySelector('#role').value='client';document.querySelector('#role').dispatchEvent(new Event('change'));document.querySelector('[data-nav=list]').click()");
+  await check("existing client cannot see new client request", "document.querySelectorAll('[data-record]').length===2 && !document.querySelector('[data-record=\"4\"]')");
+  await evaluate("document.querySelector('#role').value='new';document.querySelector('#role').dispatchEvent(new Event('change'))");
+  await check("returning new client is not asked to register twice", "!document.querySelector('#consent-form') && Boolean(document.querySelector('[data-nav=calendar]'))");
   if(report.errors.length)throw new Error("Browser reported JavaScript errors");
   report.status="PASS";
 }catch(error){report.status="FAIL";report.failure=error.message;process.exitCode=1;}

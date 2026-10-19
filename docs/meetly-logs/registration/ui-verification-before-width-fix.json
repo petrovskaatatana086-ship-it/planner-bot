@@ -1,0 +1,187 @@
+{
+  "date": "2026-10-19T12:28:08.437Z",
+  "checks": [
+    {
+      "name": "calendar loads",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow-calendar: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "booking form opens",
+      "result": "PASS"
+    },
+    {
+      "name": "review escapes user content",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-booking-review: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "booking appears in client list",
+      "result": "PASS"
+    },
+    {
+      "name": "owner sees incoming requests",
+      "result": "PASS"
+    },
+    {
+      "name": "owner approval visible to client",
+      "result": "PASS"
+    },
+    {
+      "name": "reschedule keeps original date visible",
+      "result": "PASS"
+    },
+    {
+      "name": "cancellation asks for confirmation",
+      "result": "PASS"
+    },
+    {
+      "name": "cancelled record removed from active list",
+      "result": "PASS"
+    },
+    {
+      "name": "cancelled record remains in history",
+      "result": "PASS"
+    },
+    {
+      "name": "rejected request leaves incoming list",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop-owner: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "request summary counts decisions independently of cancellations",
+      "result": "PASS"
+    },
+    {
+      "name": "approved filter includes cancelled previously approved request",
+      "result": "PASS"
+    },
+    {
+      "name": "rejected filter shows rejected request",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-owner-requests: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow-owner-requests: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "settings form available to owner",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop-owner-settings: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-owner-settings: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow-owner-settings: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "invalid settings rejected by form validation",
+      "result": "PASS"
+    },
+    {
+      "name": "settings retained between screens",
+      "result": "PASS"
+    },
+    {
+      "name": "settings update client calendar",
+      "result": "PASS"
+    },
+    {
+      "name": "disabled booking removes available slots",
+      "result": "PASS"
+    },
+    {
+      "name": "new client begins with consent and cannot access calendar",
+      "result": "PASS"
+    },
+    {
+      "name": "consent is required",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-registration-consent: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "name and email are required",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop-registration-details: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow-registration-details: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "invalid email is rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "registration review shows entered email",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-registration-review: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "editing preserves entered details",
+      "result": "PASS"
+    },
+    {
+      "name": "registered new client sees calendar and email",
+      "result": "PASS"
+    },
+    {
+      "name": "new client has no existing client records",
+      "result": "PASS"
+    },
+    {
+      "name": "new client can submit own first request",
+      "result": "PASS"
+    },
+    {
+      "name": "owner sees registered email on new request",
+      "result": "PASS"
+    },
+    {
+      "name": "existing client cannot see new client request",
+      "result": "PASS"
+    },
+    {
+      "name": "returning new client is not asked to register twice",
+      "result": "PASS"
+    }
+  ],
+  "errors": [],
+  "status": "PASS"
+}
