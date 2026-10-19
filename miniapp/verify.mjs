@@ -1,4 +1,4 @@
-﻿// Local UI verification. Uses an isolated Edge profile and fictional prototype data only.
+// Local UI verification. Uses an isolated Edge profile and fictional prototype data only.
 import {spawn} from "node:child_process";
 import {mkdtemp, readFile, mkdir, writeFile, rm} from "node:fs/promises";
 import {tmpdir} from "node:os";
@@ -70,5 +70,3 @@ finally{
   await mkdir(out,{recursive:true});await writeFile(path.join(out,"ui-verification.json"),JSON.stringify(report,null,2)+"\n");
   console.log(JSON.stringify(report,null,2));
 }
-
-
