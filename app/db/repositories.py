@@ -355,7 +355,10 @@ async def create_booking_draft(session: AsyncSession, client_id: int) -> Booking
 
 async def get_busy_starts(session: AsyncSession) -> set[datetime]:
     request_result = await session.execute(
-        select(BookingRequest.start_at).where(BookingRequest.status.in_({"pending", "approved"}))
+        select(BookingRequest.start_at).where(
+            BookingRequest.status == "pending",
+            BookingRequest.reserved_until > datetime.now(timezone.utc),
+        )
     )
     meeting_result = await session.execute(
         select(Meeting.start_at).where(
