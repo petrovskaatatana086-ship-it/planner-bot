@@ -5,6 +5,7 @@ No adapter is registered in app.main yet. Tests replace all network transports.
 import asyncio
 import smtplib
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from email.utils import formataddr
 
@@ -14,10 +15,12 @@ from aiogram.exceptions import (
 )
 from sqlalchemy import select
 
-from app.db.models import BookingRequest, Meeting, OwnerProfile, User
+from app.db.models import BookingRequest, CalendarSync, Meeting, OutboxEvent, OwnerProfile, User
 from app.domain.booking import format_moscow_dt
 from app.services.email import _deliver_email, email_notifications_enabled
 from app.services.outbox import DeliveryError, DeliveryResult
+from app.domain.intervals import utc
+from app.services.calendar_sync import enqueue_ready_notices
 
 
 @dataclass(frozen=True)
@@ -26,18 +29,21 @@ class Notice:
     email: str | None
     subject: str
     body: str
+    code: str | None = None
 
 
 class BookingDeliveries:
-    def __init__(self, sessions, *, settings, bot):
+    def __init__(self, sessions, *, settings, bot, calendar_environment=None, clock=None):
         self.sessions = sessions
         self.settings = settings
         self.bot = bot
+        self.calendar_environment = calendar_environment
+        self.clock = clock or (lambda: datetime.now(timezone.utc))
 
     def handlers(self):
         return {(channel, kind): self.deliver
                 for channel in ("telegram", "smtp")
-                for kind in ("request.created", "request.approved")}
+                for kind in ("request.created", "request.approved", "request.calendar_ready")}
 
     async def _notice(self, delivery):
         # Read and close the session before calling a remote service.
@@ -59,7 +65,7 @@ class BookingDeliveries:
                     f"Новая заявка #{request.id}",
                     f"Новая заявка #{request.id}\nКлиент: {client.full_name}\n"
                     f"Время: {format_moscow_dt(request.start_at)} МСК\nТема: {request.title}")
-            if delivery.kind != "request.approved":
+            if delivery.kind not in ("request.approved", "request.calendar_ready"):
                 raise DeliveryError("UNSUPPORTED_DELIVERY", permanent=True)
             meeting = await session.scalar(select(Meeting).where(Meeting.booking_request_id == request.id))
             if request.status != "approved" or meeting is None:
@@ -70,14 +76,48 @@ class BookingDeliveries:
                 User.telegram_id == self.settings.owner_telegram_id))
             if profile is None:
                 raise DeliveryError("OWNER_UNAVAILABLE", permanent=True)
-            # Calendar sync and its version table are the next implementation block.
-            # Never report a final invite as delivered while a configured calendar waits.
             if profile.calendar_id or profile.google_status == "active":
-                raise DeliveryError("CALENDAR_NOT_SYNCED")
+                sync = await session.get(CalendarSync, meeting.id)
+                ready = (sync and self.calendar_environment and sync.environment == self.calendar_environment
+                         and sync.calendar_id == profile.calendar_id and sync.state == "synced"
+                         and sync.applied_version == meeting.version == sync.desired_version
+                         and meeting.google_meet_url)
+                if not ready:
+                    item = await session.get(OutboxEvent, delivery.id)
+                    delayed = item and utc(self.clock())-utc(item.created_at) >= timedelta(minutes=10)
+                    if delivery.kind == "request.approved" and delayed:
+                        return Notice(client.telegram_id, client.email,
+                            f"Решение по заявке #{request.id} принято",
+                            f"Ваша заявка #{request.id} согласована.\n"
+                            f"Время: {format_moscow_dt(meeting.start_at)} МСК\n"
+                            "Обновление Google Calendar и ссылка на встречу задерживаются. "
+                            "Ссылку отправим отдельным сообщением.", "CALENDAR_DELAY_NOTICE")
+                    raise DeliveryError("CALENDAR_NOT_SYNCED")
+            elif delivery.kind == "request.calendar_ready":
+                return DeliveryResult("superseded", "CALENDAR_DISCONNECTED")
+            links = ""
+            if meeting.google_meet_url:
+                links += f"\nGoogle Meet: {meeting.google_meet_url}"
+            if meeting.google_event_url:
+                links += f"\nGoogle Calendar: {meeting.google_event_url}"
             return Notice(client.telegram_id, client.email,
                 f"Заявка #{request.id} подтверждена",
                 f"Ваша заявка #{request.id} подтверждена.\n"
-                f"Время: {format_moscow_dt(meeting.start_at)} МСК\nТема: {meeting.title}")
+                f"Время: {format_moscow_dt(meeting.start_at)} МСК\nТема: {meeting.title}{links}")
+
+    def _delivered(self, delivery, notice):
+        async def follow_up(session):
+            request = await session.get(BookingRequest, delivery.entity_id)
+            if request is None:
+                return
+            meeting = await session.scalar(select(Meeting).where(Meeting.booking_request_id == request.id))
+            sync = await session.get(CalendarSync, meeting.id) if meeting else None
+            if (sync and sync.state == "synced" and sync.applied_version == meeting.version
+                    and sync.desired_version == meeting.version and meeting.google_meet_url):
+                # Covers calendar finishing while the delay notice was in flight.
+                await enqueue_ready_notices(session, meeting, utc(self.clock()))
+        return DeliveryResult(code=notice.code,
+                              on_commit=follow_up if notice.code == "CALENDAR_DELAY_NOTICE" else None)
 
     async def deliver(self, delivery):
         notice = await self._notice(delivery)
@@ -92,7 +132,7 @@ class BookingDeliveries:
                 raise DeliveryError("TELEGRAM_REJECTED", permanent=True) from None
             except (TelegramNetworkError, TelegramServerError):
                 raise DeliveryError("TELEGRAM_UNAVAILABLE") from None
-            return DeliveryResult()
+            return self._delivered(delivery, notice)
         if delivery.channel != "smtp":
             raise DeliveryError("UNSUPPORTED_DELIVERY", permanent=True)
         if not notice.email:
@@ -116,4 +156,4 @@ class BookingDeliveries:
             raise DeliveryError("SMTP_RECIPIENT_REJECTED", permanent=permanent) from None
         except (OSError, smtplib.SMTPException):
             raise DeliveryError("SMTP_UNAVAILABLE") from None
-        return DeliveryResult()
+        return self._delivered(delivery, notice)

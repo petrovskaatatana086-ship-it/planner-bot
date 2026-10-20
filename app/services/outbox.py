@@ -28,10 +28,11 @@ def safe_code(value):
 
 
 class DeliveryError(Exception):
-    def __init__(self, code, *, permanent=False, retry_after=None):
+    def __init__(self, code, *, permanent=False, retry_after=None, on_commit=None):
         self.code = safe_code(code)
         self.permanent = permanent
         self.retry_after = retry_after
+        self.on_commit = on_commit
         # Never put external exception messages into logs/storage.
         super().__init__(self.code)
 
@@ -56,6 +57,7 @@ class Delivery:
 class DeliveryResult:
     state: str = "sent"
     code: str | None = None
+    on_commit: Callable | None = None
 
     def __post_init__(self):
         if self.state not in TERMINAL:
@@ -144,6 +146,10 @@ class OutboxWorker:
                     if isinstance(extra, (int, float)) and math.isfinite(extra) and extra > 0:
                         delay = max(delay, min(extra, 86400))
                     item.next_attempt_at = now + timedelta(seconds=delay)
+            hook = result.on_commit if result is not None else error.on_commit
+            if hook is not None:
+                # DB-only effect, fenced by the lease and committed with the acknowledgement.
+                await hook(session)
             return True
         return await run_sqlite_write(self.sessions, acknowledge)
 

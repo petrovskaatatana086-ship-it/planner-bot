@@ -1,4 +1,4 @@
-﻿"""Crash/retry/concurrency tests. All delivery transports are fakes."""
+"""Crash/retry/concurrency tests. All delivery transports are fakes."""
 import asyncio
 import smtplib
 import unittest
@@ -244,7 +244,7 @@ class OutboxTest(unittest.IsolatedAsyncioTestCase):
         self.settings.smtp_username = "test"
         self.settings.smtp_password = "synthetic"
         self.settings.smtp_from_email = "test@example.com"
-        adapters = BookingDeliveries(self.sessions[0], settings=self.settings, bot=AsyncMock())
+        adapters = BookingDeliveries(self.sessions[0], settings=self.settings, bot=AsyncMock(), clock=lambda: self.now)
         worker = OutboxWorker(self.sessions[0], adapters.handlers(), clock=lambda: self.now)
         with patch("app.services.booking_deliveries._deliver_email", side_effect=smtplib.SMTPDataError(451, b"private")) as smtp:
             await worker.run_once()
@@ -259,7 +259,7 @@ class OutboxTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_disabled_smtp_is_explicit_skip(self):
         identifier = await self.make_booking()
-        adapters = BookingDeliveries(self.sessions[0], settings=self.settings, bot=AsyncMock())
+        adapters = BookingDeliveries(self.sessions[0], settings=self.settings, bot=AsyncMock(), clock=lambda: self.now)
         with patch("app.services.booking_deliveries._deliver_email") as smtp:
             await OutboxWorker(self.sessions[0], adapters.handlers(), clock=lambda: self.now).run_once()
             smtp.assert_not_called()
@@ -286,7 +286,7 @@ class OutboxTest(unittest.IsolatedAsyncioTestCase):
         self.settings.smtp_username = "test"
         self.settings.smtp_password = "synthetic"
         self.settings.smtp_from_email = "test@example.com"
-        adapters = BookingDeliveries(self.sessions[0], settings=self.settings, bot=AsyncMock())
+        adapters = BookingDeliveries(self.sessions[0], settings=self.settings, bot=AsyncMock(), clock=lambda: self.now)
         worker = OutboxWorker(self.sessions[0], adapters.handlers(), clock=lambda: self.now)
         with patch("app.services.booking_deliveries._deliver_email", side_effect=smtplib.SMTPDataError(550, b"private")):
             await worker.run_once()
@@ -309,7 +309,7 @@ class OutboxTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_stale_notice_is_superseded_and_calendar_never_bypassed(self):
         identifier = await self.make_booking()
-        adapters = BookingDeliveries(self.sessions[0], settings=self.settings, bot=AsyncMock())
+        adapters = BookingDeliveries(self.sessions[0], settings=self.settings, bot=AsyncMock(), clock=lambda: self.now)
         worker = OutboxWorker(self.sessions[0], adapters.handlers(), clock=lambda: self.now)
         async with self.sessions[0]() as session:
             profile = await session.scalar(select(OwnerProfile))

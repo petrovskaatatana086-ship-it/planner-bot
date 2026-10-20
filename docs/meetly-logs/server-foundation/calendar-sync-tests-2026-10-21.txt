@@ -1,0 +1,22 @@
+test_409_recovered_by_get (test_calendar_sync.CalendarSyncTest.test_409_recovered_by_get) ... ok
+test_calendar_binding_change_stops_network (test_calendar_sync.CalendarSyncTest.test_calendar_binding_change_stops_network) ... ok
+test_cancel_after_create_deletes_event (test_calendar_sync.CalendarSyncTest.test_cancel_after_create_deletes_event) ... ok
+test_cancel_before_create_skips_remote_creation (test_calendar_sync.CalendarSyncTest.test_cancel_before_create_skips_remote_creation) ... ok
+test_conference_pending_then_ready_without_second_event (test_calendar_sync.CalendarSyncTest.test_conference_pending_then_ready_without_second_event) ... ok
+test_create_and_notification_after_sync (test_calendar_sync.CalendarSyncTest.test_create_and_notification_after_sync) ... ok
+test_delay_notice_then_followup_link (test_calendar_sync.CalendarSyncTest.test_delay_notice_then_followup_link) ... ok
+test_foreign_event_is_never_overwritten (test_calendar_sync.CalendarSyncTest.test_foreign_event_is_never_overwritten) ... ok
+test_manual_move_is_conflict_not_overwritten (test_calendar_sync.CalendarSyncTest.test_manual_move_is_conflict_not_overwritten) ... ok
+test_new_version_during_network_is_not_marked_synced (test_calendar_sync.CalendarSyncTest.test_new_version_during_network_is_not_marked_synced) ... ok
+test_old_lease_cannot_apply_calendar_result (test_calendar_sync.CalendarSyncTest.test_old_lease_cannot_apply_calendar_result) ... ok
+test_reschedule_patch_timeout_reconciles_before_retry (test_calendar_sync.CalendarSyncTest.test_reschedule_patch_timeout_reconciles_before_retry) ... ok
+test_timeout_after_remote_insert_does_not_duplicate (test_calendar_sync.CalendarSyncTest.test_timeout_after_remote_insert_does_not_duplicate) ... ok
+test_token_refresh_releases_write_lock_and_rechecks_credentials (test_calendar_sync.CalendarSyncTest.test_token_refresh_releases_write_lock_and_rechecks_credentials) ... ok
+test_401_refreshes_once_and_429_is_safe (test_calendar_sync.GatewayTest.test_401_refreshes_once_and_429_is_safe) ... ok
+test_delete_missing_and_etag (test_calendar_sync.GatewayTest.test_delete_missing_and_etag) ... ok
+test_quota_and_permission_errors_are_distinct (test_calendar_sync.GatewayTest.test_quota_and_permission_errors_are_distinct) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 13.868s
+
+OK

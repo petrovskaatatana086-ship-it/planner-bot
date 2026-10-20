@@ -199,3 +199,18 @@ class OutboxEvent(Base):
     lease_token: Mapped[str | None] = mapped_column(String(32), nullable=True)
     error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class CalendarSync(Base):
+    __tablename__ = "calendar_sync"
+
+    meeting_id: Mapped[int] = mapped_column(ForeignKey("meetings.id"), primary_key=True)
+    environment: Mapped[str] = mapped_column(String(64))
+    calendar_id: Mapped[str] = mapped_column(String(512))
+    deterministic_event_id: Mapped[str] = mapped_column(String(255))
+    conference_request_id: Mapped[str] = mapped_column(String(32))
+    desired_version: Mapped[int] = mapped_column(Integer)
+    applied_version: Mapped[int] = mapped_column(Integer, default=0)
+    applied_start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    applied_end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    state: Mapped[str] = mapped_column(String(32), default="pending")
+    last_error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
