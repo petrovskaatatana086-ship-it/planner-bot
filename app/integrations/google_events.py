@@ -1,8 +1,10 @@
 ﻿"""Typed, bounded Google HTTP adapter; no response bodies/secrets in exceptions."""
 import json
+from datetime import datetime
 from urllib.parse import quote
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
+from app.domain.intervals import Interval, utc
 
 BASE = "https://www.googleapis.com/calendar/v3/calendars"
 
@@ -47,6 +49,9 @@ class GoogleEventGateway:
         params = {} if method == "GET" else {"sendUpdates": "all"}
         if method in ("POST", "PATCH"):
             params["conferenceDataVersion"] = "1"
+        return await self._authenticated(method, url, params, body, etag)
+
+    async def _authenticated(self, method, url, params, body=None, etag=None):
         for refresh in (False, True):
             try:
                 token = await self.token_provider(force_refresh=refresh)
@@ -79,6 +84,34 @@ class GoogleEventGateway:
                 raise GoogleFailure(502)
             return data
         raise GoogleFailure(401)
+
+    async def busy(self, calendar_id, time_min, time_max):
+        """Fail closed on per-calendar errors or incomplete/malformed success bodies."""
+        data = await self._authenticated("POST", "https://www.googleapis.com/calendar/v3/freeBusy", {}, {
+            "timeMin": utc(time_min).isoformat(), "timeMax": utc(time_max).isoformat(),
+            "timeZone": "UTC", "items": [{"id": calendar_id}],
+        })
+        try:
+            parse = lambda value: datetime.fromisoformat(value.replace("Z", "+00:00"))
+            start, end = parse(data["timeMin"]), parse(data["timeMax"])
+            if start.tzinfo is None or end.tzinfo is None or start > time_min or end < time_max:
+                raise ValueError("incomplete coverage")
+            entry = data["calendars"][calendar_id]
+            errors = entry.get("errors", []) if isinstance(entry, dict) else None
+            if not isinstance(entry, dict) or not isinstance(errors, list) or errors:
+                raise ValueError("calendar error")
+            periods = entry["busy"]
+            if not isinstance(periods, list) or len(periods) > 10000:
+                raise ValueError("invalid busy periods")
+            result = []
+            for period in periods:
+                start, end = parse(period["start"]), parse(period["end"])
+                if start.tzinfo is None or end.tzinfo is None:
+                    raise ValueError("offset required")
+                result.append(Interval(start, end))
+            return tuple(result)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            raise GoogleFailure(502) from None
 
     async def get(self, calendar_id, event_id):
         try:

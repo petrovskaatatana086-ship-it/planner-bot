@@ -1,10 +1,11 @@
 ﻿"""Transactional booking foundation, not yet wired to bot or HTTP.
 
-External calendar accounts fail closed until the checked-snapshot adapter and
-outbox worker are available. This service never performs external I/O.
+External availability is fetched before BEGIN IMMEDIATE, then validated again
+inside it. Bot/HTTP runtime wiring remains a separate implementation step.
 """
 import hashlib
 import json
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -17,6 +18,10 @@ from app.db.models import (
 from app.db.transactions import run_sqlite_write
 from app.domain.booking import MOSCOW_TZ, WORKDAYS, WORK_START, WORK_END, validate_title
 from app.domain.intervals import Interval, utc
+from app.services.availability import (
+    AvailabilityPlan, CalendarUnavailable, GoogleAvailability, SnapshotChanged, configured,
+)
+from app.services.calendar_sync import enqueue_calendar_sync
 
 ACTIVE = ("confirmed", "rescheduled", "reschedule_pending", "rescheduled_pending")
 
@@ -46,19 +51,24 @@ def comment_text(value):
 
 
 class BookingCommands:
-    def __init__(self, sessions, *, owner_telegram_id, clock=None):
+    def __init__(self, sessions, *, owner_telegram_id, clock=None, availability=None,
+                 calendar_environment=None):
         self.sessions = sessions
         self.owner_telegram_id = owner_telegram_id
         self.clock = clock or (lambda: datetime.now(timezone.utc))
+        self.availability = availability or GoogleAvailability(clock=self.clock)
+        if calendar_environment is not None and not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", calendar_environment):
+            raise ValueError("Invalid calendar environment")
+        self.calendar_environment = calendar_environment
 
-    async def _run(self, actor_id, key, kind, payload, callback, *, owner=False):
+    async def _run(self, actor_id, key, kind, payload, callback, *, prepare, owner=False):
         if not isinstance(key, str) or not 1 <= len(key) <= 128:
             raise BookingError("INVALID_REQUEST")
         canonical = json.dumps({"kind": kind, "payload": payload}, sort_keys=True,
                                separators=(",", ":"), ensure_ascii=False)
         digest = hashlib.sha256(canonical.encode()).hexdigest()
 
-        async def execute(session):
+        async def context(session):
             actor = await session.get(User, actor_id)
             if actor is None or actor.status != "active":
                 raise BookingError("ACCOUNT_BLOCKED")
@@ -72,13 +82,19 @@ class BookingCommands:
             if prior:
                 if prior.payload_hash != digest:
                     raise BookingError("IDEMPOTENCY_KEY_REUSED")
-                return json.loads(prior.response_json)
+                return actor, None, json.loads(prior.response_json)
             profile = await session.scalar(select(OwnerProfile).join(User).where(
                 User.telegram_id == self.owner_telegram_id))
             if profile is None:
                 raise BookingError("BOOKING_UNAVAILABLE")
+            return actor, profile, None
+
+        async def execute(session):
+            actor, profile, replay = await context(session)
+            if replay is not None:
+                return replay
             now = utc(self.clock())
-            result, entity_id, version = await callback(session, actor, profile, now)
+            result, entity_id, version = await callback(session, actor, profile, now, snapshot)
             session.add(OperationResult(actor_id=actor_id, command_id=key, kind=kind,
                 payload_hash=digest, resource_id=entity_id,
                 response_json=json.dumps(result, sort_keys=True), created_at=now))
@@ -93,13 +109,36 @@ class BookingCommands:
                     state="pending", attempts=0, next_attempt_at=now, created_at=now))
             return result
 
-        return await run_sqlite_write(self.sessions, execute)
+        for _ in range(2):
+            async with self.sessions() as session:
+                actor, profile, replay = await context(session)
+                if replay is not None:
+                    return replay
+                interval = await prepare(session, actor, profile, utc(self.clock()))
+                plan = AvailabilityPlan.capture(profile, interval)
+                if plan.configured and self.calendar_environment is None:
+                    raise BookingError("CALENDAR_UNAVAILABLE")
+            # The read session is closed. No SQLite write lock spans this call.
+            try:
+                snapshot = await self.availability.fetch(plan)
+            except CalendarUnavailable:
+                # Another invocation may have committed this same key while Google failed.
+                async with self.sessions() as session:
+                    _, _, replay = await context(session)
+                    if replay is not None:
+                        return replay
+                raise BookingError("CALENDAR_UNAVAILABLE") from None
+            try:
+                return await run_sqlite_write(self.sessions, execute)
+            except SnapshotChanged:
+                # Release/rollback before repeating any network access.
+                continue
+        raise BookingError("CALENDAR_UNAVAILABLE")
 
     @staticmethod
-    def _require_local_calendar(profile):
-        # A connected account must never silently bypass Google availability.
-        if profile.calendar_id or profile.google_status == "active":
-            raise BookingError("CALENDAR_UNAVAILABLE")
+    def _check_calendar(snapshot, profile, interval, now):
+        if not snapshot.validate(profile, interval, now):
+            raise BookingError("SLOT_UNAVAILABLE")
 
     @staticmethod
     async def _available(session, profile, interval, now, *, exclude_request=None, exclude_meeting=None):
@@ -159,15 +198,19 @@ class BookingCommands:
         payload = dict(start_at=start_at.isoformat(), title=title, comment=comment,
                        settings_version=settings_version)
 
-        async def create(session, actor, profile, now):
+        async def prepare(session, actor, profile, now):
             if actor.telegram_id == self.owner_telegram_id:
                 raise BookingError("FORBIDDEN")
             check_version(profile, settings_version)
             if not profile.booking_enabled:
                 raise BookingError("BOOKING_DISABLED")
-            self._require_local_calendar(profile)
             interval = Interval(start_at, start_at + timedelta(minutes=profile.default_duration))
             await self._schedule(session, profile, interval, now)
+            return interval
+
+        async def create(session, actor, profile, now, snapshot):
+            interval = await prepare(session, actor, profile, now)
+            self._check_calendar(snapshot, profile, interval, now)
             await self._available(session, profile, interval, now)
             request = BookingRequest(client_id=actor.id, title=title, comment=comment,
                 start_at=interval.start, end_at=interval.end, status="pending",
@@ -178,12 +221,12 @@ class BookingCommands:
                 reserved_until=request.reserved_until.isoformat())
             return result, request.id, 1
 
-        return await self._run(actor_id, command_id, "request.created", payload, create)
+        return await self._run(actor_id, command_id, "request.created", payload, create, prepare=prepare)
 
     async def approve_request(self, *, actor_id, command_id, request_id, expected_version):
         payload = dict(request_id=request_id, expected_version=expected_version)
 
-        async def approve(session, actor, profile, now):
+        async def checked_request(session, actor, profile, now):
             request = await session.get(BookingRequest, request_id)
             if request is None:
                 raise BookingError("NOT_FOUND")
@@ -193,10 +236,18 @@ class BookingCommands:
             client = await session.get(User, request.client_id)
             if not client or client.status != "active" or not client.email or not client.consent_at:
                 raise BookingError("CLIENT_UNAVAILABLE")
-            self._require_local_calendar(profile)
             interval = Interval(request.start_at, request.end_at)
             if interval.start <= now:
                 raise BookingError("INVALID_STATE")
+            return request, interval
+
+        async def prepare(session, actor, profile, now):
+            _, interval = await checked_request(session, actor, profile, now)
+            return interval
+
+        async def approve(session, actor, profile, now, snapshot):
+            request, interval = await checked_request(session, actor, profile, now)
+            self._check_calendar(snapshot, profile, interval, now)
             await self._available(session, profile, interval, now, exclude_request=request.id)
             request.status = "approved"
             request.approved_at = now
@@ -206,7 +257,11 @@ class BookingCommands:
                 timezone=request.timezone, status="confirmed", version=1, created_at=now)
             session.add(meeting)
             await session.flush()
+            if configured(profile):
+                await enqueue_calendar_sync(session, meeting=meeting, profile=profile,
+                    environment=self.calendar_environment, now=now)
             return dict(id=request.id, version=request.version, status="approved",
                         meeting_id=meeting.id), request.id, request.version
 
-        return await self._run(actor_id, command_id, "request.approved", payload, approve, owner=True)
+        return await self._run(actor_id, command_id, "request.approved", payload, approve,
+                               prepare=prepare, owner=True)
