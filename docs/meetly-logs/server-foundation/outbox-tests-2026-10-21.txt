@@ -1,0 +1,26 @@
+test_actual_network_timeout_cancels_handler (test_outbox.OutboxTest.test_actual_network_timeout_cancels_handler) ... ok
+test_cancelled_network_leaves_lease_for_recovery (test_outbox.OutboxTest.test_cancelled_network_leaves_lease_for_recovery) ... ok
+test_crash_after_remote_acceptance_may_redeliver_same_message_id (test_outbox.OutboxTest.test_crash_after_remote_acceptance_may_redeliver_same_message_id) ... ok
+test_disabled_smtp_is_explicit_skip (test_outbox.OutboxTest.test_disabled_smtp_is_explicit_skip) ... ok
+test_exhausted_abandoned_claim_not_delivered_again (test_outbox.OutboxTest.test_exhausted_abandoned_claim_not_delivered_again) ... ok
+test_expired_ack_without_reclaim_is_rejected (test_outbox.OutboxTest.test_expired_ack_without_reclaim_is_rejected) ... ok
+test_failed_owner_notice_does_not_block_client_confirmation (test_outbox.OutboxTest.test_failed_owner_notice_does_not_block_client_confirmation) ... ok
+test_fifo_per_channel_entity_and_family (test_outbox.OutboxTest.test_fifo_per_channel_entity_and_family) ... ok
+test_max_attempts_and_manual_retry_same_id (test_outbox.OutboxTest.test_max_attempts_and_manual_retry_same_id) ... ok
+test_network_does_not_hold_database_write_lock (test_outbox.OutboxTest.test_network_does_not_hold_database_write_lock) ... ok
+test_permanent_failure_blocks_later_same_entity_only (test_outbox.OutboxTest.test_permanent_failure_blocks_later_same_entity_only) ... ok
+test_recover_after_crash_and_fence_old_worker (test_outbox.OutboxTest.test_recover_after_crash_and_fence_old_worker) ... ok
+test_retry_delay_sequence (test_outbox.OutboxTest.test_retry_delay_sequence) ... ok
+test_smtp_permanent_error_is_not_retried (test_outbox.OutboxTest.test_smtp_permanent_error_is_not_retried) ... ok
+test_smtp_stable_message_id_and_retry_no_raw_error (test_outbox.OutboxTest.test_smtp_stable_message_id_and_retry_no_raw_error) ... ok
+test_stale_notice_is_superseded_and_calendar_never_bypassed (test_outbox.OutboxTest.test_stale_notice_is_superseded_and_calendar_never_bypassed) ... ok
+test_stop_wait_is_interruptible (test_outbox.OutboxTest.test_stop_wait_is_interruptible) ... ok
+test_telegram_adapter_sends_plain_text_to_client (test_outbox.OutboxTest.test_telegram_adapter_sends_plain_text_to_client) ... ok
+test_timeout_and_unknown_handler_are_visible (test_outbox.OutboxTest.test_timeout_and_unknown_handler_are_visible) ... ok
+test_transient_retry_after_and_sanitized_error (test_outbox.OutboxTest.test_transient_retry_after_and_sanitized_error) ... ok
+test_two_workers_send_once (test_outbox.OutboxTest.test_two_workers_send_once) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 15.968s
+
+OK

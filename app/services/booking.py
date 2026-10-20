@@ -86,7 +86,7 @@ class BookingCommands:
                 entity_type="booking_request" if kind.startswith("request.") else "meeting",
                 entity_id=str(entity_id), created_at=now))
             event_id = uuid.uuid4().hex
-            # Durable intent only. Delivery worker is a separate implementation step.
+            # Consumed by services.outbox; runtime wiring waits for bot migration.
             for channel in ("telegram", "smtp"):
                 session.add(OutboxEvent(event_id=event_id, entity_id=entity_id,
                     entity_version=version, channel=channel, kind=kind,

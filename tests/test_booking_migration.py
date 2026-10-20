@@ -1,4 +1,4 @@
-﻿"""Real Alembic revision operations against synthetic legacy SQLite, no .env."""
+"""Real Alembic revision operations against synthetic legacy SQLite, no .env."""
 import importlib.util
 import unittest
 import uuid
@@ -58,6 +58,9 @@ class BookingMigrationTest(unittest.TestCase):
         module = revision("0006_booking_commands")
         with patch.object(module, "op", self.ops):
             module.upgrade()
+        lease_revision = revision("0007_outbox_lease_token")
+        with patch.object(lease_revision, "op", self.ops):
+            lease_revision.upgrade()
         self.connection.commit()
 
     def test_upgrade_preserves_legacy_records_and_enforces_uniqueness(self):
