@@ -22,6 +22,7 @@ class User(Base):
     status: Mapped[str] = mapped_column(String(32), default="active")
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")
     consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consent_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

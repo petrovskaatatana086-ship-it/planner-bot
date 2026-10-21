@@ -63,7 +63,8 @@ async def ensure_user_stub(
         return user
 
     user.username = username
-    user.full_name = full_name or user.full_name
+    if role == "owner" or not user.email or not user.consent_at:
+        user.full_name = full_name or user.full_name
     user.role = role
     user.last_activity_at = datetime.now(timezone.utc)
     if role == "owner":

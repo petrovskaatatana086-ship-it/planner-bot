@@ -1,0 +1,25 @@
+test_absolute_bot_messages_serialize_without_losing_other_fields (test_profile_commands.ProfileCommandsTest.test_absolute_bot_messages_serialize_without_losing_other_fields) ... ok
+test_blocked_registration_cannot_reactivate_account_or_replay (test_profile_commands.ProfileCommandsTest.test_blocked_registration_cannot_reactivate_account_or_replay) ... ok
+test_blocked_unregistered_stub_cannot_register (test_profile_commands.ProfileCommandsTest.test_blocked_unregistered_stub_cannot_register) ... ok
+test_bot_registration_without_consent_does_not_write_profile (test_profile_commands.ProfileCommandsTest.test_bot_registration_without_consent_does_not_write_profile) ... ok
+test_concurrent_registrations_do_not_overwrite_first_profile (test_profile_commands.ProfileCommandsTest.test_concurrent_registrations_do_not_overwrite_first_profile) ... ok
+test_concurrent_same_key_replays_registration (test_profile_commands.ProfileCommandsTest.test_concurrent_same_key_replays_registration) ... ok
+test_consent_button_records_shared_version (test_profile_commands.ProfileCommandsTest.test_consent_button_records_shared_version) ... ok
+test_consent_version_boolean_and_profile_validation (test_profile_commands.ProfileCommandsTest.test_consent_version_boolean_and_profile_validation) ... ok
+test_ensure_user_race_has_one_stub (test_profile_commands.ProfileCommandsTest.test_ensure_user_race_has_one_stub) ... ok
+test_existing_legacy_registration_not_forced_to_consent_again (test_profile_commands.ProfileCommandsTest.test_existing_legacy_registration_not_forced_to_consent_again) ... ok
+test_legitimate_emoji_display_name_is_not_rejected_as_control_text (test_profile_commands.ProfileCommandsTest.test_legitimate_emoji_display_name_is_not_rejected_as_control_text) ... ok
+test_new_telegram_message_preserves_registered_name (test_profile_commands.ProfileCommandsTest.test_new_telegram_message_preserves_registered_name) ... ok
+test_patch_settings_version_and_same_key_replay (test_profile_commands.ProfileCommandsTest.test_patch_settings_version_and_same_key_replay) ... ok
+test_real_bot_registration_uses_explicit_consent_and_preserves_name (test_profile_commands.ProfileCommandsTest.test_real_bot_registration_uses_explicit_consent_and_preserves_name) ... ok
+test_real_bot_setting_handler_is_versioned_and_idempotent (test_profile_commands.ProfileCommandsTest.test_real_bot_setting_handler_is_versioned_and_idempotent) ... ok
+test_registration_evidence_and_replay (test_profile_commands.ProfileCommandsTest.test_registration_evidence_and_replay) ... ok
+test_reused_key_different_payload_does_not_change_settings (test_profile_commands.ProfileCommandsTest.test_reused_key_different_payload_does_not_change_settings) ... ok
+test_stored_owner_role_cannot_grant_settings_access (test_profile_commands.ProfileCommandsTest.test_stored_owner_role_cannot_grant_settings_access) ... ok
+test_strict_settings_types_ranges_and_no_unknown_fields (test_profile_commands.ProfileCommandsTest.test_strict_settings_types_ranges_and_no_unknown_fields) ... ok
+test_two_concurrent_card_updates_have_one_winner (test_profile_commands.ProfileCommandsTest.test_two_concurrent_card_updates_have_one_winner) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 15.352s
+
+OK

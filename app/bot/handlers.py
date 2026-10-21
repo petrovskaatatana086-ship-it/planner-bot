@@ -4,6 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+import hashlib
 
 from app.bot.keyboards import (
     booking_comment_keyboard,
@@ -23,10 +25,8 @@ from app.db.repositories import (
     approve_booking_request,
     approve_meeting_reschedule,
     cancel_meeting,
-    complete_client_registration,
     create_booking_draft,
     create_booking_request_from_draft,
-    ensure_user_stub,
     get_active_owner_profile,
     get_booking_request,
     get_busy_starts,
@@ -44,7 +44,6 @@ from app.db.repositories import (
     reschedule_meeting,
     set_client_status,
     set_owner_google_calendar,
-    update_owner_profile_field,
 )
 from app.domain.booking import (
     MEETING_DURATION_MINUTES,
@@ -60,6 +59,10 @@ from app.domain.booking import (
 )
 from app.domain.email import is_valid_email
 from app.domain.roles import OWNER_ROLE
+from app.domain.registration import CONSENT_TEXT, CONSENT_VERSION, valid_name
+from app.services.profiles import ProfileCommands, SETTING_RANGES
+from app.services.booking import BookingError
+from app.db.transactions import DatabaseBusy
 from app.integrations.google_calendar import list_google_calendars
 from app.integrations.google_oauth import build_google_oauth_link, google_oauth_is_configured
 from app.services.google import (
@@ -78,6 +81,27 @@ from app.services.email import (
 )
 
 router = Router()
+
+
+def _profile_commands(settings, session_factory):
+    return ProfileCommands(session_factory, owner_telegram_id=settings.owner_telegram_id)
+
+
+def _message_command_key(message, settings, action):
+    # Store/hash only the public bot id, never the secret token portion.
+    identity = f"telegram:{settings.bot_token.split(':', 1)[0]}:{message.chat.id}:{message.message_id}:{action}"
+    return hashlib.sha256(identity.encode()).hexdigest()
+
+
+def _command_error(error):
+    return {
+        "ACCOUNT_BLOCKED": "Ваш доступ сейчас ограничен. Напишите специалисту для уточнения.",
+        "FORBIDDEN": "У вас нет доступа к этому действию.",
+        "CONSENT_CHANGED": "Текст согласия обновился. Начните регистрацию заново через /start.",
+        "INVALID_STATE": "Действие уже выполнено или данные изменились. Обновите раздел.",
+        "STALE_VERSION": "Настройки изменились. Обновите раздел и повторите действие.",
+        "VALIDATION_FAILED": "Проверьте введённые данные и повторите действие.",
+    }.get(getattr(error, "code", "DATABASE_BUSY"), "Не удалось выполнить действие. Повторите позже.")
 
 
 async def _cancel_booking_flow(message: Message, state: FSMContext) -> None:
@@ -150,17 +174,11 @@ async def _load_user(message: Message, settings: Settings, session_factory: asyn
     if telegram_user is None:
         return None
 
-    async with session_factory() as session:
-        user = await ensure_user_stub(
-            session,
+    return await _profile_commands(settings, session_factory).ensure_telegram_user(
             telegram_id=telegram_user.id,
-            owner_telegram_id=settings.owner_telegram_id,
             full_name=_display_name(message),
             username=telegram_user.username,
         )
-        await session.commit()
-        await session.refresh(user)
-        return user
 
 
 async def _load_callback_user(callback: CallbackQuery, settings: Settings, session_factory: async_sessionmaker):
@@ -168,17 +186,11 @@ async def _load_callback_user(callback: CallbackQuery, settings: Settings, sessi
     if callback_user is None:
         return None
 
-    async with session_factory() as session:
-        user = await ensure_user_stub(
-            session,
+    return await _profile_commands(settings, session_factory).ensure_telegram_user(
             telegram_id=callback_user.id,
-            owner_telegram_id=settings.owner_telegram_id,
             full_name=callback_user.full_name or callback_user.username or str(callback_user.id),
             username=callback_user.username,
         )
-        await session.commit()
-        await session.refresh(user)
-        return user
 
 
 async def _require_registered_client(message: Message, settings: Settings, session_factory):
@@ -305,8 +317,7 @@ async def start(message: Message, state: FSMContext, settings: Settings, session
 
     await state.set_state(Registration.waiting_for_consent)
     await message.answer(
-        "Добро пожаловать в Планировщик встреч.\n\n"
-        "Для записи нужно принять согласие на обработку данных.",
+        CONSENT_TEXT,
         reply_markup=consent_keyboard(),
     )
 
@@ -322,6 +333,7 @@ async def admin(message: Message, settings: Settings, session_factory):
 
 @router.message(Registration.waiting_for_consent, F.text.casefold() == "принимаю")
 async def accept_consent(message: Message, state: FSMContext):
+    await state.update_data(consent=True, consent_version=CONSENT_VERSION)
     await state.set_state(Registration.waiting_for_name)
     await message.answer("Введите ваше имя.")
 
@@ -334,8 +346,8 @@ async def reject_consent(message: Message):
 @router.message(Registration.waiting_for_name)
 async def enter_name(message: Message, state: FSMContext):
     name = (message.text or "").strip()
-    if len(name) < 2 or len(name) > 255:
-        await message.answer("Имя должно быть от 2 до 255 символов. Введите имя еще раз.")
+    if not valid_name(name):
+        await message.answer("Имя должно содержать от 1 до 255 символов без управляющих знаков. Введите имя ещё раз.")
         return
 
     await state.update_data(full_name=name)
@@ -382,21 +394,17 @@ async def confirm_registration(message: Message, state: FSMContext, settings: Se
         return
 
     data = await state.get_data()
-    async with session_factory() as session:
-        user = await ensure_user_stub(
-            session,
-            telegram_id=telegram_user.id,
-            owner_telegram_id=settings.owner_telegram_id,
-            full_name=data["full_name"],
-            username=telegram_user.username,
-        )
-        await complete_client_registration(
-            session,
-            user=user,
-            full_name=data["full_name"],
-            email=data["email"],
-        )
-        await session.commit()
+    commands = _profile_commands(settings, session_factory)
+    user = await commands.ensure_telegram_user(telegram_id=telegram_user.id,
+        full_name=_display_name(message), username=telegram_user.username)
+    try:
+        await commands.register(actor_id=user.id,
+            command_id=_message_command_key(message, settings, "register"),
+            full_name=data.get("full_name"), email=data.get("email"),
+            consent=data.get("consent"), consent_version=data.get("consent_version"))
+    except (BookingError, DatabaseBusy) as error:
+        await message.answer(_command_error(error))
+        return
 
     await state.clear()
     await message.answer("Регистрация завершена. Главное меню.", reply_markup=client_main_menu())
@@ -849,26 +857,23 @@ async def update_numeric_meeting_setting(message: Message, settings: Settings, s
     command, raw_value = (message.text or "").split(maxsplit=1)
     value = int(raw_value)
     fields = {
-        "Длительность": ("default_duration", 15, 240),
-        "Перерыв": ("buffer_minutes", 0, 120),
-        "Лимит": ("daily_limit", 1, 50),
-        "Горизонт": ("booking_horizon_days", 1, 180),
-        "Минимум": ("min_booking_notice_hours", 1, 720),
+        "Длительность": "default_duration", "Перерыв": "buffer_minutes", "Лимит": "daily_limit",
+        "Горизонт": "booking_horizon_days", "Минимум": "min_booking_notice_hours",
     }
-    field, min_value, max_value = fields[command]
+    field = fields[command]
+    min_value, max_value = SETTING_RANGES[field]
     if value < min_value or value > max_value:
         await message.answer(f"Значение должно быть от {min_value} до {max_value}.")
         return
 
-    async with session_factory() as session:
-        profile = await update_owner_profile_field(
-            session,
-            owner=owner,
-            field=field,
-            value=value,
-        )
-        await session.commit()
-        await message.answer("Настройка обновлена.\n\n" + _profile_text(profile))
+    try:
+        data = await _profile_commands(settings, session_factory).apply_settings_message(
+            actor_id=owner.id, command_id=_message_command_key(message, settings, "settings"),
+            changes={field: value})
+    except (BookingError, DatabaseBusy) as error:
+        await message.answer(_command_error(error))
+        return
+    await message.answer("Настройка обновлена.\n\n" + _profile_text(SimpleNamespace(**data)))
 
 
 @router.message(F.text.in_({"Запись вкл", "Запись выкл"}))
@@ -879,15 +884,14 @@ async def toggle_booking(message: Message, settings: Settings, session_factory):
         return
 
     enabled = message.text == "Запись вкл"
-    async with session_factory() as session:
-        profile = await update_owner_profile_field(
-            session,
-            owner=owner,
-            field="booking_enabled",
-            value=enabled,
-        )
-        await session.commit()
-        await message.answer("Настройка обновлена.\n\n" + _profile_text(profile))
+    try:
+        data = await _profile_commands(settings, session_factory).apply_settings_message(
+            actor_id=owner.id, command_id=_message_command_key(message, settings, "settings"),
+            changes={"booking_enabled": enabled})
+    except (BookingError, DatabaseBusy) as error:
+        await message.answer(_command_error(error))
+        return
+    await message.answer("Настройка обновлена.\n\n" + _profile_text(SimpleNamespace(**data)))
 
 
 @router.message(F.text == "Google Calendar")

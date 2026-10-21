@@ -67,6 +67,9 @@ class BookingMigrationTest(unittest.TestCase):
         history_revision = revision("0009_reschedule_history")
         with patch.object(history_revision, "op", self.ops):
             history_revision.upgrade()
+        consent_revision = revision("0010_consent_version")
+        with patch.object(consent_revision, "op", self.ops):
+            consent_revision.upgrade()
         self.connection.commit()
 
     def test_upgrade_preserves_legacy_records_and_enforces_uniqueness(self):
@@ -79,7 +82,7 @@ class BookingMigrationTest(unittest.TestCase):
         self.assertIn("operation_results", sa.inspect(self.connection).get_table_names())
         self.assertIn("outbox", sa.inspect(self.connection).get_table_names())
         # Ensure model metadata and revision produce the same field set.
-        for name in ("meetings", "booking_requests", "owner_profiles", "operation_results", "outbox", "calendar_sync", "reschedule_requests"):
+        for name in ("users", "meetings", "booking_requests", "owner_profiles", "operation_results", "outbox", "calendar_sync", "reschedule_requests"):
             actual = {c["name"] for c in sa.inspect(self.connection).get_columns(name)}
             self.assertEqual(actual, set(Base.metadata.tables[name].columns.keys()))
 
@@ -126,3 +129,11 @@ class BookingMigrationTest(unittest.TestCase):
             "SELECT previous_status,status,comment FROM reschedule_requests WHERE meeting_id=1")).first()
         self.assertEqual(tuple(proposal), (None, "pending", "Synthetic legacy proposal"))
         self.assertEqual(self.connection.scalar(sa.text("SELECT status FROM meetings WHERE id=1")), "reschedule_pending")
+
+    def test_legacy_consent_and_name_survive_nullable_consent_version_migration(self):
+        self.connection.execute(sa.text("UPDATE users SET email='legacy@example.com', "
+            "full_name='Legacy entered name', consent_at='2026-10-01 07:00:00' WHERE id=1"))
+        self.connection.commit()
+        self.upgrade()
+        row = self.connection.execute(sa.text("SELECT full_name,email,consent_at,consent_version FROM users WHERE id=1")).first()
+        self.assertEqual(tuple(row), ("Legacy entered name", "legacy@example.com", "2026-10-01 07:00:00", None))
