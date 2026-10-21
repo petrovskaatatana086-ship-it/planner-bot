@@ -2,6 +2,7 @@
 import json
 from datetime import datetime
 from urllib.parse import quote
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from app.domain.intervals import Interval, utc
@@ -121,11 +122,65 @@ class GoogleEventGateway:
                 return None
             raise
 
+    async def busy_excluding(self, calendar_id, time_min, time_max, exclude_event_id):
+        """Read complete expanded event pages; never subtract an interval from freeBusy."""
+        url = f"{BASE}/{quote(calendar_id, safe='')}/events"
+        params = {"timeMin": utc(time_min).isoformat(), "timeMax": utc(time_max).isoformat(),
+                  "singleEvents": "true", "showDeleted": "false", "maxResults": "2500"}
+        periods, seen, count = [], set(), 0
+        for _ in range(100):
+            data = await self._authenticated("GET", url, params)
+            try:
+                if data.get("accessRole") not in ("reader", "writer", "writerWithoutPrivateAccess", "owner"):
+                    raise ValueError("event access required")
+                events = data["items"]
+                if not isinstance(events, list):
+                    raise ValueError("invalid events")
+                count += len(events)
+                if count > 10000:
+                    raise ValueError("too many events")
+                for event in events:
+                    if not isinstance(event, dict):
+                        raise ValueError("invalid event")
+                    if event.get("status") == "cancelled" or event.get("transparency") == "transparent":
+                        continue
+                    if event.get("status", "confirmed") not in ("confirmed", "tentative"):
+                        raise ValueError("unknown status")
+                    identifier = event["id"]
+                    if not isinstance(identifier, str) or not identifier:
+                        raise ValueError("missing event id")
+                    if identifier == exclude_event_id:
+                        continue
+                    if "recurrence" in event:
+                        raise ValueError("recurrence was not expanded")
+                    def instant(part):
+                        if "dateTime" in part:
+                            value = datetime.fromisoformat(part["dateTime"].replace("Z", "+00:00"))
+                            if value.tzinfo is None:
+                                raise ValueError("offset required")
+                            return value
+                        zone = ZoneInfo(part.get("timeZone") or data["timeZone"])
+                        value = datetime.strptime(part["date"], "%Y-%m-%d")
+                        return value.replace(tzinfo=zone)
+                    periods.append(Interval(instant(event["start"]), instant(event["end"])))
+                token = data.get("nextPageToken")
+                if token is None:
+                    return tuple(periods)
+                if not isinstance(token, str) or not token or token in seen:
+                    raise ValueError("invalid page token")
+                seen.add(token)
+                params = {**params, "pageToken": token}
+            except (ValueError, TypeError, KeyError, AttributeError, ZoneInfoNotFoundError):
+                raise GoogleFailure(502) from None
+        raise GoogleFailure(502)
+
     async def insert(self, calendar_id, body):
         return await self._call("POST", calendar_id, body=body)
 
-    async def patch(self, calendar_id, event_id, body, etag):
-        return await self._call("PATCH", calendar_id, event_id, body=body, etag=etag)
+    async def patch(self, calendar_id, event_id, body, etag, *, notify=True):
+        url = f"{BASE}/{quote(calendar_id, safe='')}/events/{quote(event_id, safe='')}"
+        return await self._authenticated("PATCH", url,
+            {"sendUpdates": "all" if notify else "none", "conferenceDataVersion": "1"}, body, etag)
 
     async def delete(self, calendar_id, event_id, etag):
         try:

@@ -64,6 +64,9 @@ class BookingMigrationTest(unittest.TestCase):
         calendar_revision = revision("0008_calendar_sync")
         with patch.object(calendar_revision, "op", self.ops):
             calendar_revision.upgrade()
+        history_revision = revision("0009_reschedule_history")
+        with patch.object(history_revision, "op", self.ops):
+            history_revision.upgrade()
         self.connection.commit()
 
     def test_upgrade_preserves_legacy_records_and_enforces_uniqueness(self):
@@ -76,7 +79,7 @@ class BookingMigrationTest(unittest.TestCase):
         self.assertIn("operation_results", sa.inspect(self.connection).get_table_names())
         self.assertIn("outbox", sa.inspect(self.connection).get_table_names())
         # Ensure model metadata and revision produce the same field set.
-        for name in ("meetings", "booking_requests", "owner_profiles", "operation_results", "outbox", "calendar_sync"):
+        for name in ("meetings", "booking_requests", "owner_profiles", "operation_results", "outbox", "calendar_sync", "reschedule_requests"):
             actual = {c["name"] for c in sa.inspect(self.connection).get_columns(name)}
             self.assertEqual(actual, set(Base.metadata.tables[name].columns.keys()))
 
@@ -112,3 +115,14 @@ class BookingMigrationTest(unittest.TestCase):
         self.connection.commit()
         with self.assertRaisesRegex(RuntimeError, "invalid booking"):
             self.upgrade()
+
+    def test_valid_legacy_proposal_is_preserved_without_guessing_previous_status(self):
+        self.connection.execute(sa.text("UPDATE meetings SET status='reschedule_pending', "
+            "proposed_start_at='2026-10-27 07:00:00', proposed_end_at='2026-10-27 08:00:00', "
+            "reschedule_comment='Synthetic legacy proposal'"))
+        self.connection.commit()
+        self.upgrade()
+        proposal = self.connection.execute(sa.text(
+            "SELECT previous_status,status,comment FROM reschedule_requests WHERE meeting_id=1")).first()
+        self.assertEqual(tuple(proposal), (None, "pending", "Synthetic legacy proposal"))
+        self.assertEqual(self.connection.scalar(sa.text("SELECT status FROM meetings WHERE id=1")), "reschedule_pending")

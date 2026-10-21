@@ -1,4 +1,4 @@
-﻿"""Delivery adapters for the two booking commands currently implemented.
+"""Delivery adapters for booking decisions, rescheduling and cancellation.
 
 No adapter is registered in app.main yet. Tests replace all network transports.
 """
@@ -15,7 +15,7 @@ from aiogram.exceptions import (
 )
 from sqlalchemy import select
 
-from app.db.models import BookingRequest, CalendarSync, Meeting, OutboxEvent, OwnerProfile, User
+from app.db.models import BookingRequest, CalendarSync, Meeting, OutboxEvent, OwnerProfile, User, RescheduleRequest
 from app.domain.booking import format_moscow_dt
 from app.services.email import _deliver_email, email_notifications_enabled
 from app.services.outbox import DeliveryError, DeliveryResult
@@ -43,11 +43,15 @@ class BookingDeliveries:
     def handlers(self):
         return {(channel, kind): self.deliver
                 for channel in ("telegram", "smtp")
-                for kind in ("request.created", "request.approved", "request.calendar_ready")}
+                for kind in ("request.created", "request.approved", "request.calendar_ready", "request.rejected",
+                    "meeting.reschedule_requested", "meeting.reschedule_rejected", "meeting.rescheduled",
+                    "meeting.cancelled", "meeting.cancelled_owner", "meeting.calendar_ready")}
 
     async def _notice(self, delivery):
         # Read and close the session before calling a remote service.
         async with self.sessions() as session:
+            if delivery.kind.startswith("meeting."):
+                return await self._meeting_notice(session, delivery)
             request = await session.get(BookingRequest, delivery.entity_id)
             if request is None:
                 raise DeliveryError("RESOURCE_NOT_FOUND", permanent=True)
@@ -56,6 +60,11 @@ class BookingDeliveries:
             client = await session.get(User, request.client_id)
             if client is None or client.status != "active":
                 return DeliveryResult("skipped", "RECIPIENT_UNAVAILABLE")
+            if delivery.kind == "request.rejected":
+                if request.status != "rejected":
+                    return DeliveryResult("superseded", "STALE_EVENT")
+                return Notice(client.telegram_id, client.email, f"Заявка #{request.id} отклонена",
+                    f"Ваша заявка #{request.id} отклонена.\nПричина: {request.rejection_reason or ''}")
             if delivery.kind == "request.created":
                 if request.status != "pending":
                     return DeliveryResult("superseded", "STALE_EVENT")
@@ -105,12 +114,81 @@ class BookingDeliveries:
                 f"Ваша заявка #{request.id} подтверждена.\n"
                 f"Время: {format_moscow_dt(meeting.start_at)} МСК\nТема: {meeting.title}{links}")
 
+    async def _meeting_notice(self, session, delivery):
+        meeting = await session.get(Meeting, delivery.entity_id)
+        if meeting is None:
+            raise DeliveryError("RESOURCE_NOT_FOUND", permanent=True)
+        if meeting.version != delivery.entity_version:
+            return DeliveryResult("superseded", "STALE_EVENT")
+        client = await session.get(User, meeting.client_id)
+        if client is None or (client.status != "active" and delivery.kind != "meeting.cancelled_owner"):
+            return DeliveryResult("skipped", "RECIPIENT_UNAVAILABLE")
+        when = format_moscow_dt(meeting.start_at)
+        if delivery.kind == "meeting.cancelled_owner":
+            if meeting.status != "cancelled_by_client" or delivery.channel != "telegram":
+                return DeliveryResult("superseded", "STALE_EVENT")
+            return Notice(self.settings.owner_telegram_id, None, f"Клиент отменил встречу #{meeting.id}",
+                f"Клиент {client.full_name} отменил встречу #{meeting.id} на {when} МСК.\n"
+                f"Причина: {meeting.cancellation_reason or 'не указана'}")
+        if delivery.kind == "meeting.reschedule_requested":
+            proposal = await session.scalar(select(RescheduleRequest).where(
+                RescheduleRequest.meeting_id == meeting.id, RescheduleRequest.status == "pending"))
+            if meeting.status != "reschedule_pending" or proposal is None:
+                return DeliveryResult("superseded", "STALE_EVENT")
+            if delivery.channel == "smtp":
+                return DeliveryResult("skipped", "NOT_APPLICABLE")
+            return Notice(self.settings.owner_telegram_id, None, f"Запрос переноса встречи #{meeting.id}",
+                f"Клиент {client.full_name} просит перенести встречу #{meeting.id}.\n"
+                f"Сейчас: {when} МСК\nПредложено: {format_moscow_dt(proposal.proposed_start_at)} МСК")
+        if delivery.kind == "meeting.reschedule_rejected":
+            proposal = await session.scalar(select(RescheduleRequest).where(
+                RescheduleRequest.meeting_id == meeting.id, RescheduleRequest.status == "rejected"
+            ).order_by(RescheduleRequest.id.desc()))
+            if proposal is None or meeting.status not in ("confirmed", "rescheduled"):
+                return DeliveryResult("superseded", "STALE_EVENT")
+            return Notice(client.telegram_id, client.email, f"Перенос встречи #{meeting.id} отклонён",
+                f"Запрос переноса встречи #{meeting.id} отклонён.\n"
+                f"Время не изменилось: {when} МСК\nПричина: {proposal.reason or ''}")
+        sync = await session.get(CalendarSync, meeting.id)
+        profile = await session.scalar(select(OwnerProfile).join(User).where(
+            User.telegram_id == self.settings.owner_telegram_id))
+        if profile is None:
+            raise DeliveryError("OWNER_UNAVAILABLE", permanent=True)
+        connected = bool(profile.calendar_id or profile.google_status == "active" or sync)
+        ready = (sync and self.calendar_environment == sync.environment and profile.calendar_id == sync.calendar_id
+                 and sync.state == "synced" and sync.applied_version == meeting.version == sync.desired_version)
+        if delivery.kind == "meeting.cancelled":
+            if not meeting.status.startswith("cancelled"):
+                return DeliveryResult("superseded", "STALE_EVENT")
+            pending = "\nОбновление Google Calendar ещё выполняется." if connected and not ready else ""
+            return Notice(client.telegram_id, client.email, f"Встреча #{meeting.id} отменена",
+                f"Встреча #{meeting.id} на {when} МСК отменена.\n"
+                f"Причина: {meeting.cancellation_reason or 'не указана'}{pending}")
+        if meeting.status != "rescheduled" or delivery.kind not in ("meeting.rescheduled", "meeting.calendar_ready"):
+            return DeliveryResult("superseded", "STALE_EVENT")
+        if connected and (not ready or not meeting.google_meet_url):
+            item = await session.get(OutboxEvent, delivery.id)
+            if (delivery.kind == "meeting.rescheduled" and item
+                    and utc(self.clock())-utc(item.created_at) >= timedelta(minutes=10)):
+                return Notice(client.telegram_id, client.email, f"Встреча #{meeting.id} перенесена",
+                    f"Новое время встречи #{meeting.id}: {when} МСК.\n"
+                    "Обновление Google Calendar задерживается. Ссылку отправим отдельно.", "CALENDAR_DELAY_NOTICE")
+            raise DeliveryError("CALENDAR_NOT_SYNCED")
+        if not connected and delivery.kind == "meeting.calendar_ready":
+            return DeliveryResult("superseded", "CALENDAR_DISCONNECTED")
+        link = f"\nGoogle Meet: {meeting.google_meet_url}" if meeting.google_meet_url else ""
+        return Notice(client.telegram_id, client.email, f"Встреча #{meeting.id} перенесена",
+            f"Новое время встречи #{meeting.id}: {when} МСК{link}")
+
     def _delivered(self, delivery, notice):
         async def follow_up(session):
-            request = await session.get(BookingRequest, delivery.entity_id)
-            if request is None:
-                return
-            meeting = await session.scalar(select(Meeting).where(Meeting.booking_request_id == request.id))
+            if delivery.kind.startswith("meeting."):
+                meeting = await session.get(Meeting, delivery.entity_id)
+            else:
+                request = await session.get(BookingRequest, delivery.entity_id)
+                if request is None:
+                    return
+                meeting = await session.scalar(select(Meeting).where(Meeting.booking_request_id == request.id))
             sync = await session.get(CalendarSync, meeting.id) if meeting else None
             if (sync and sync.state == "synced" and sync.applied_version == meeting.version
                     and sync.desired_version == meeting.version and meeting.google_meet_url):

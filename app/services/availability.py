@@ -34,11 +34,18 @@ class AvailabilityPlan:
     active: bool
     interval: Interval
     buffer_minutes: int
+    exclude_event_id: str | None = None
 
     @classmethod
-    def capture(cls, profile, interval):
+    def capture(cls, profile, interval, exclude_event_id=None):
         return cls(profile_key(profile), profile.calendar_id, configured(profile),
-                   profile.google_status == "active", interval, profile.buffer_minutes)
+                   profile.google_status == "active", interval, profile.buffer_minutes, exclude_event_id)
+
+
+@dataclass(frozen=True)
+class AvailabilityTarget:
+    interval: Interval
+    exclude_event_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -47,8 +54,9 @@ class AvailabilitySnapshot:
     checked_at: datetime
     busy: tuple[Interval, ...]
 
-    def validate(self, profile, interval, now):
-        if profile_key(profile) != self.plan.fingerprint or interval != self.plan.interval:
+    def validate(self, profile, interval, now, exclude_event_id=None):
+        if (profile_key(profile) != self.plan.fingerprint or interval != self.plan.interval
+                or exclude_event_id != self.plan.exclude_event_id):
             raise SnapshotChanged()
         if self.plan.configured:
             age = (utc(now)-utc(self.checked_at)).total_seconds()
@@ -71,7 +79,11 @@ class GoogleAvailability:
             raise CalendarUnavailable()
         gap = timedelta(minutes=plan.buffer_minutes)
         try:
-            periods = await self.gateway.busy(plan.calendar_id, plan.interval.start-gap, plan.interval.end+gap)
+            if plan.exclude_event_id:
+                periods = await self.gateway.busy_excluding(plan.calendar_id, plan.interval.start-gap,
+                    plan.interval.end+gap, plan.exclude_event_id)
+            else:
+                periods = await self.gateway.busy(plan.calendar_id, plan.interval.start-gap, plan.interval.end+gap)
             if not isinstance(periods, (tuple, list)) or any(not isinstance(p, Interval) for p in periods):
                 raise CalendarUnavailable()
         except GoogleFailure:

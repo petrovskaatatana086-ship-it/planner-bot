@@ -50,7 +50,7 @@ class FakeCalendar:
             raise GoogleFailure(0)
         return copy.deepcopy(event)
 
-    async def patch(self, calendar, identifier, body, etag):
+    async def patch(self, calendar, identifier, body, etag, *, notify=True):
         self.patches += 1
         if self.events[identifier]["etag"] != etag:
             raise GoogleFailure(412)

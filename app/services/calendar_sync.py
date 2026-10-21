@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.db.models import BookingRequest, CalendarSync, Meeting, OutboxEvent, OwnerProfile, User
 from app.domain.intervals import utc
@@ -33,14 +33,26 @@ async def enqueue_ready_notices(session, meeting, now):
             session.add(OutboxEvent(event_id=uuid.uuid4().hex, entity_id=request.id,
                 entity_version=request.version, channel=original.channel, kind="request.calendar_ready",
                 state="pending", attempts=0, next_attempt_at=now, created_at=now))
+    move_notices = (await session.scalars(select(OutboxEvent).where(
+        OutboxEvent.entity_id == meeting.id, OutboxEvent.entity_version == meeting.version,
+        OutboxEvent.kind == "meeting.rescheduled", OutboxEvent.state == "sent",
+        OutboxEvent.error_code == "CALENDAR_DELAY_NOTICE"))).all()
+    for original in move_notices:
+        prior = await session.scalar(select(OutboxEvent.id).where(
+            OutboxEvent.entity_id == meeting.id, OutboxEvent.entity_version == meeting.version,
+            OutboxEvent.kind == "meeting.calendar_ready", OutboxEvent.channel == original.channel))
+        if prior is None:
+            session.add(OutboxEvent(event_id=uuid.uuid4().hex, entity_id=meeting.id,
+                entity_version=meeting.version, channel=original.channel, kind="meeting.calendar_ready",
+                state="pending", attempts=0, next_attempt_at=now, created_at=now))
 
 
-async def enqueue_calendar_sync(session, *, meeting, profile, environment, now):
+async def enqueue_calendar_sync(session, *, meeting, profile, environment, now, allow_unavailable=False):
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", environment):
         raise ValueError("Invalid calendar environment")
-    if not profile.calendar_id or profile.google_status != "active":
-        raise DeliveryError("CALENDAR_UNAVAILABLE")
     sync = await session.get(CalendarSync, meeting.id)
+    if (not profile.calendar_id or profile.google_status != "active") and not (allow_unavailable and sync):
+        raise DeliveryError("CALENDAR_UNAVAILABLE")
     if sync is None:
         sync = CalendarSync(meeting_id=meeting.id, environment=environment,
             calendar_id=profile.calendar_id,
@@ -48,7 +60,7 @@ async def enqueue_calendar_sync(session, *, meeting, profile, environment, now):
             conference_request_id=uuid.uuid4().hex, desired_version=meeting.version,
             applied_version=0, state="pending")
         session.add(sync)
-    elif sync.calendar_id != profile.calendar_id or sync.environment != environment:
+    elif sync.environment != environment or (sync.calendar_id != profile.calendar_id and not allow_unavailable):
         raise DeliveryError("CALENDAR_BINDING_CHANGED", permanent=True)
     elif sync.desired_version > meeting.version:
         raise DeliveryError("CALENDAR_VERSION_MISMATCH", permanent=True)
@@ -57,6 +69,13 @@ async def enqueue_calendar_sync(session, *, meeting, profile, environment, now):
         sync.state = "pending"
         sync.last_error_code = None
     await session.flush()
+    if meeting.status.startswith("cancelled"):
+        # Cancellation supersedes unsuccessful creates/updates, but never steals an active lease.
+        await session.execute(update(OutboxEvent).where(
+            OutboxEvent.channel == "google", OutboxEvent.kind == "meeting.sync",
+            OutboxEvent.entity_id == meeting.id, OutboxEvent.entity_version < meeting.version,
+            OutboxEvent.state.in_(("pending", "retry", "failed"))
+        ).values(state="superseded", lease_until=None, lease_token=None))
     prior = await session.scalar(select(OutboxEvent.id).where(
         OutboxEvent.channel == "google", OutboxEvent.kind == "meeting.sync",
         OutboxEvent.entity_id == meeting.id, OutboxEvent.entity_version == meeting.version))
@@ -132,15 +151,16 @@ class CalendarDeliveries:
             if sync.desired_version != meeting.version or delivery.entity_version > meeting.version:
                 raise DeliveryError("CALENDAR_VERSION_MISMATCH", permanent=True)
             client = await session.get(User, meeting.client_id)
-            if client is None or not client.email:
+            cancelled = meeting.status.startswith("cancelled")
+            if (client is None or not client.email) and not cancelled:
                 raise DeliveryError("CALENDAR_CLIENT_MISSING", permanent=True)
             if meeting.status not in ("confirmed", "rescheduled", "reschedule_pending",
                                       "cancelled_by_client", "cancelled_by_owner"):
                 raise DeliveryError("CALENDAR_INVALID_STATE", permanent=True)
             return Snapshot(meeting.id, meeting.version, sync.calendar_id,
                 sync.deterministic_event_id, sync.conference_request_id, meeting.title,
-                client.email, utc(meeting.start_at), utc(meeting.end_at),
-                meeting.status.startswith("cancelled"), sync.applied_version,
+                client.email if client else "", utc(meeting.start_at), utc(meeting.end_at),
+                cancelled, sync.applied_version,
                 utc(sync.applied_start_at) if sync.applied_start_at else None,
                 utc(sync.applied_end_at) if sync.applied_end_at else None)
 
@@ -255,7 +275,9 @@ class CalendarDeliveries:
             # Preserve private properties belonging to other tools.
             body["extendedProperties"]["private"] = {**event.get("extendedProperties", {}).get("private", {}),
                                                        **self._tags(snapshot)}
-            event = await self.gateway.patch(snapshot.calendar_id, snapshot.event_id, body, event["etag"])
+            dates_changed = (snapshot.start != snapshot.applied_start or snapshot.end != snapshot.applied_end)
+            event = await self.gateway.patch(snapshot.calendar_id, snapshot.event_id, body, event["etag"],
+                                             notify=dates_changed)
             self._owned(snapshot, event)
             if (remote_time(event, "start") != snapshot.start or remote_time(event, "end") != snapshot.end
                     or event["extendedProperties"]["private"].get("meetly_version") != str(snapshot.version)):

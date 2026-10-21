@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, String, Text, Time, UniqueConstraint
+from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, String, Text, Time, UniqueConstraint, Index, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -125,6 +125,7 @@ class Meeting(Base):
     google_event_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     google_meet_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="confirmed", index=True)
+    cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     proposed_start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     proposed_end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     reschedule_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -214,3 +215,20 @@ class CalendarSync(Base):
     applied_end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     state: Mapped[str] = mapped_column(String(32), default="pending")
     last_error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+class RescheduleRequest(Base):
+    __tablename__ = "reschedule_requests"
+    __table_args__ = (Index("uq_reschedule_pending_meeting", "meeting_id", unique=True,
+        sqlite_where=text("status = 'pending'"), postgresql_where=text("status = 'pending'")),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    meeting_id: Mapped[int] = mapped_column(ForeignKey("meetings.id"), index=True)
+    requested_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    proposed_start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    proposed_end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    previous_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
