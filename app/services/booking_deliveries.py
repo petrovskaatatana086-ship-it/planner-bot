@@ -1,6 +1,6 @@
 """Delivery adapters for booking decisions, rescheduling and cancellation.
 
-No adapter is registered in app.main yet. Tests replace all network transports.
+Registered by the opt-in shared runtime. Tests replace all transports.
 """
 import asyncio
 import smtplib

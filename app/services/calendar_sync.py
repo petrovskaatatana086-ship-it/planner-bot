@@ -1,6 +1,6 @@
-﻿"""Durable Google desired state, consumed by the fenced outbox worker.
+"""Durable Google desired state, consumed by the fenced outbox worker.
 
-Not wired to app.main or the bot yet. Call enqueue_calendar_sync only inside
+Registered by the opt-in runtime. Call enqueue_calendar_sync only inside
 an existing booking write transaction. No network call belongs in that transaction.
 """
 import re

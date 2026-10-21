@@ -15,6 +15,8 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    booking_runtime_enabled: bool = Field(default=False, alias="BOOKING_RUNTIME_ENABLED")
+    calendar_environment: str = Field(default="", alias="CALENDAR_ENVIRONMENT")
     google_client_id: str = Field(default="", alias="GOOGLE_CLIENT_ID")
     google_client_secret: str = Field(default="", alias="GOOGLE_CLIENT_SECRET")
     google_redirect_uri: str = Field(default="", alias="GOOGLE_REDIRECT_URI")
@@ -35,6 +37,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_webhook_configuration(self):
+        if self.booking_runtime_enabled and not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.calendar_environment):
+            raise ValueError("CALENDAR_ENVIRONMENT is required when BOOKING_RUNTIME_ENABLED=true")
         if self.bot_mode == "webhook":
             url = urlsplit(self.telegram_webhook_url)
             if (url.scheme != "https" or not url.hostname or url.username or url.password

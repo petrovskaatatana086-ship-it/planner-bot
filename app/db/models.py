@@ -184,6 +184,18 @@ class OperationResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class BotCommandInput(Base):
+    __tablename__ = "bot_command_inputs"
+    __table_args__ = (UniqueConstraint("actor_id", "command_id", name="uq_bot_input_actor_command"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    command_id: Mapped[str] = mapped_column(String(128))
+    input_hash: Mapped[str] = mapped_column(String(64))
+    payload_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class OutboxEvent(Base):
     __tablename__ = "outbox"
     __table_args__ = (UniqueConstraint("event_id", "channel", "kind", name="uq_outbox_delivery"),)

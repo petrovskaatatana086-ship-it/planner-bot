@@ -102,9 +102,9 @@ class BookingDomainTest(unittest.TestCase):
         buttons = [button for row in keyboard.inline_keyboard for button in row]
 
         self.assertEqual(buttons[0].text, "Согласовать")
-        self.assertEqual(buttons[0].callback_data, "approve_request:5")
+        self.assertEqual(buttons[0].callback_data, "approve_request:5:1")
         self.assertEqual(buttons[1].text, "Отклонить")
-        self.assertEqual(buttons[1].callback_data, "reject_request:5")
+        self.assertEqual(buttons[1].callback_data, "reject_request:5:1")
 
 
 if __name__ == "__main__":

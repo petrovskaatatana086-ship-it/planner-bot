@@ -1,8 +1,8 @@
-﻿"""Durable delivery engine. Network adapters execute outside write transactions.
+"""Durable delivery engine. Network adapters execute outside write transactions.
 
 Lease fencing protects DB acknowledgements, not exactly-once remote delivery.
 A crash after the remote server accepts a message can still cause a duplicate.
-The worker is intentionally not started by app.main until bot migration is done.
+app.main starts this worker only with BOOKING_RUNTIME_ENABLED.
 """
 import asyncio
 import math

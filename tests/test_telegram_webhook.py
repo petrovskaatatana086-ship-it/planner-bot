@@ -180,7 +180,7 @@ class MainTransportTest(unittest.IsolatedAsyncioTestCase):
             serve.assert_awaited_once()
             dispatcher.emit_shutdown.assert_awaited_once()
         else:
-            dispatcher.start_polling.assert_awaited_once_with(bot, close_bot_session=False)
+            dispatcher.start_polling.assert_awaited_once_with(bot, close_bot_session=False, handle_as_tasks=False)
             serve.assert_not_called()
         runner.cleanup.assert_awaited_once()
         bot.session.close.assert_awaited_once()

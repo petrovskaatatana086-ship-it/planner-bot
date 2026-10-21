@@ -1,0 +1,5 @@
+Executing <Task pending name='Task-214' coro=<BotBookingTest.test_real_rejection_owner_move_and_owner_cancel() running at C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\tests\test_bot_booking.py:186> wait_for=<Future pending cb=[Task.task_wakeup()] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:448> cb=[_run_until_complete_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:181] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:100> took 0.109 seconds
+----------------------------------------------------------------------
+Ran 18 tests in 21.912s
+
+OK

@@ -1,22 +1,38 @@
 """Shared booking dependencies and an explicitly managed outbox lifecycle.
 
-Construction does not access the network or start a worker. app.main will adopt
-this runtime together with the booking handlers, after legacy writers migrate.
+Construction does not access the network or start a worker. app.main starts
+this runtime only with BOOKING_RUNTIME_ENABLED and an explicit environment.
 """
 import asyncio
 import math
 import re
 
-from sqlalchemy import select
+from sqlalchemy import select, inspect
 
+from app.db.base import Base
 from app.db.models import User
 from app.integrations.google_events import GoogleEventGateway
 from app.services.availability import GoogleAvailability
 from app.services.booking import BookingCommands
+from app.services.bot_booking import BotBooking
 from app.services.booking_deliveries import BookingDeliveries
 from app.services.calendar_sync import CalendarDeliveries
 from app.services.google_tokens import GoogleTokens
 from app.services.outbox import OutboxWorker
+
+
+async def verify_booking_schema(sessions):
+    """create_all cannot upgrade old columns; refuse writers on a partial schema."""
+    def verify(connection):
+        inspector = inspect(connection)
+        tables = set(inspector.get_table_names())
+        for name, table in Base.metadata.tables.items():
+            if name not in tables or not set(table.columns.keys()).issubset(
+                    {column["name"] for column in inspector.get_columns(name)}):
+                raise RuntimeError("Booking schema is outdated; run Alembic upgrade head on a backed-up database")
+    async with sessions() as session:
+        connection = await session.connection()
+        await connection.run_sync(verify)
 
 
 class OwnerGoogleTokens:
@@ -45,6 +61,7 @@ or cache an identity across deletion/blocking. The read ends before token refres
 class BookingRuntime:
     def __init__(self, *, commands, worker):
         self.commands = commands
+        self.bot_commands = BotBooking(commands) if commands is not None else None
         self.worker = worker
         self._task = None
         self._stop = None
@@ -64,6 +81,12 @@ class BookingRuntime:
                 return
             self._stop = asyncio.Event()
             self._task = asyncio.create_task(self.worker.run(self._stop), name="booking-outbox")
+
+    async def wait(self):
+        """Observe failures without allowing a cancelled monitor to stop delivery."""
+        if self._task is None:
+            raise RuntimeError("Booking runtime is not started")
+        await asyncio.shield(self._task)
 
     async def close(self, *, drain_seconds=35):
         if (isinstance(drain_seconds, bool) or not isinstance(drain_seconds, (int, float))

@@ -1,7 +1,7 @@
-﻿"""Transactional booking foundation, not yet wired to bot or HTTP.
+"""Transactional booking commands shared by bot and future HTTP adapter.
 
 External availability is fetched before BEGIN IMMEDIATE, then validated again
-inside it. Bot/HTTP runtime wiring remains a separate implementation step.
+inside it. Bot activation is explicit; HTTP wiring remains separate.
 """
 import hashlib
 import json

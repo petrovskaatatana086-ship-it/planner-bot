@@ -96,12 +96,12 @@ def booking_confirmation_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
-def owner_request_actions_keyboard(request_id: int) -> InlineKeyboardMarkup:
+def owner_request_actions_keyboard(request_id: int, version: int = 1) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Согласовать", callback_data=f"approve_request:{request_id}"),
-                InlineKeyboardButton(text="Отклонить", callback_data=f"reject_request:{request_id}"),
+                InlineKeyboardButton(text="Согласовать", callback_data=f"approve_request:{request_id}:{version}"),
+                InlineKeyboardButton(text="Отклонить", callback_data=f"reject_request:{request_id}:{version}"),
             ]
         ]
     )

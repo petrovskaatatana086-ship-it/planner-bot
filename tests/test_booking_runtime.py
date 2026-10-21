@@ -7,14 +7,14 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.config import Settings
 from app.db.base import Base
 from app.db.models import OutboxEvent, OwnerProfile, User
 from app.db.session import make_engine
-from app.services.booking_runtime import BookingRuntime, OwnerGoogleTokens, build_booking_runtime
+from app.services.booking_runtime import BookingRuntime, OwnerGoogleTokens, build_booking_runtime, verify_booking_schema
 
 
 class RuntimeLifecycleTest(unittest.IsolatedAsyncioTestCase):
@@ -199,6 +199,13 @@ class RuntimeGraphTest(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 build_booking_runtime(self.sessions, settings=self.settings,
                     bot=self.bot, environment=environment)
+
+    async def test_schema_guard_accepts_current_and_rejects_partial_schema(self):
+        await verify_booking_schema(self.sessions)
+        async with self.engine.begin() as connection:
+            await connection.execute(text("DROP TABLE bot_command_inputs"))
+        with self.assertRaisesRegex(RuntimeError, "schema is outdated"):
+            await verify_booking_schema(self.sessions)
 
 
 if __name__ == "__main__":
