@@ -3,8 +3,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy import select
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 import hashlib
 import uuid
@@ -22,13 +21,10 @@ from app.bot.keyboards import (
 )
 from app.bot.states import Booking, GoogleCalendarSelection, Registration, Rejection
 from app.config import Settings
-from app.db.models import User, OwnerProfile
+from app.db.models import User
 from app.db.repositories import (
-    get_active_owner_profile,
     get_booking_request,
-    get_busy_starts,
     get_google_oauth_credential,
-    get_meeting,
     get_owner_profile,
     list_client_meetings,
     list_client_requests,
@@ -39,10 +35,7 @@ from app.db.repositories import (
     set_owner_google_calendar,
 )
 from app.domain.booking import (
-    MEETING_DURATION_MINUTES,
     MOSCOW_TZ,
-    available_dates,
-    available_slots_for_date,
     format_moscow_date,
     format_moscow_dt,
     parse_moscow_date,
@@ -59,7 +52,6 @@ from app.db.transactions import DatabaseBusy
 from app.integrations.google_calendar import list_google_calendars
 from app.integrations.google_oauth import build_google_oauth_link, google_oauth_is_configured
 from app.services.google import (
-    get_google_busy_starts_for_date,
     get_valid_google_access_token,
 )
 
@@ -103,6 +95,35 @@ async def _booking_command(message, booking_runtime, action, *, actor, command_i
     except (BookingError, DatabaseBusy) as error:
         await message.answer(_command_error(error))
         return None
+
+
+async def _booking_availability(message, runtime, action, **payload):
+    if runtime is None:
+        await message.answer("Запись временно недоступна.")
+        return None
+    try:
+        return await getattr(runtime.availability_queries, action)(**payload)
+    except (BookingError, DatabaseBusy) as error:
+        await message.answer(_command_error(error))
+        return None
+
+
+def _booking_dates_markup(data):
+    return booking_dates_keyboard(data.get("allowed_dates", []),
+        previous_page=data.get("date_previous", False), next_page=data.get("date_next", False))
+
+
+async def _show_booking_dates(message, state, view):
+    dates = [day.date for day in view.days if day.available_slots_count]
+    await state.update_data(allowed_dates=dates, page_from=view.from_date, page_to=view.to_date,
+        date_previous=view.from_date > view.checked_at.astimezone(MOSCOW_TZ).date(),
+        date_next=view.to_date < view.horizon_end, settings_version=view.settings_version,
+        booking_command_id=uuid.uuid4().hex)
+    await state.set_state(Booking.waiting_for_date)
+    data = await state.get_data()
+    text = "Выберите дату кнопкой ниже." if dates else "В этом периоде свободных дат нет."
+    await message.answer(text + _invitation_email_line(data.get("invitation_email")),
+                         reply_markup=_booking_dates_markup(data))
 
 
 async def _cancel_booking_flow(message: Message, state: FSMContext) -> None:
@@ -373,39 +394,12 @@ async def start_booking(message: Message, state: FSMContext, settings: Settings,
     user = await _require_registered_client(message, settings, session_factory)
     if user is None:
         return
-
-    if booking_runtime is None:
-        await message.answer("Запись временно недоступна.")
+    view = await _booking_availability(message, booking_runtime, "days", actor_id=user.id)
+    if view is None:
         return
-    async with session_factory() as session:
-        profile = await session.scalar(select(OwnerProfile).join(User).where(
-            User.telegram_id == settings.owner_telegram_id))
-        if profile is None:
-            await message.answer("Специалист ещё не настроил запись.")
-            return
-        if not profile.booking_enabled:
-            await message.answer("Запись временно выключена специалистом.")
-            return
-
-    duration = profile.default_duration if profile is not None else 60
-    horizon = profile.booking_horizon_days if profile is not None else 14
-    notice = profile.min_booking_notice_hours if profile is not None else 24
-    dates = available_dates(
-        horizon_days=horizon,
-        duration_minutes=duration,
-        min_notice_hours=notice,
-    )
-    if not dates:
-        await message.answer("Сейчас нет доступных дат для записи. Попробуйте позже.")
-        return
-
-    await state.set_state(Booking.waiting_for_date)
-    await state.update_data(duration=duration, horizon=horizon, notice=notice, invitation_email=user.email,
-        settings_version=profile.version if profile is not None else None, booking_command_id=uuid.uuid4().hex)
-    await message.answer(
-        "Выберите дату кнопкой ниже." + _invitation_email_line(user.email),
-        reply_markup=booking_dates_keyboard(dates),
-    )
+    await state.clear()
+    await state.update_data(invitation_email=user.email)
+    await _show_booking_dates(message, state, view)
 
 
 @router.message(Booking.waiting_for_time, F.text == "Изменить дату")
@@ -426,131 +420,70 @@ async def cancel_booking_flow(message: Message, state: FSMContext, settings: Set
 
 
 @router.message(Booking.waiting_for_date)
-async def choose_date(message: Message, state: FSMContext, settings: Settings, session_factory):
-    selected_date = parse_moscow_date(message.text or "")
-    if selected_date is None:
-        data = await state.get_data()
-        allowed_dates = available_dates(
-            horizon_days=data.get("horizon", 14),
-            duration_minutes=data.get("duration", 60),
-            min_notice_hours=data.get("notice", 24),
-        )
-        await message.answer(
-            "Выберите дату кнопкой ниже." + _invitation_email_line(data.get("invitation_email")),
-            reply_markup=booking_dates_keyboard(allowed_dates),
-        )
+async def choose_date(message: Message, state: FSMContext, settings: Settings, session_factory, booking_runtime=None):
+    user = await _require_registered_client(message, settings, session_factory)
+    if user is None:
         return
-
     data = await state.get_data()
-    allowed_dates = available_dates(
-        horizon_days=data.get("horizon", 14),
-        duration_minutes=data.get("duration", 60),
-        min_notice_hours=data.get("notice", 24),
-    )
-    if selected_date not in allowed_dates:
-        await message.answer(
-            "Эта дата недоступна. Выберите дату кнопкой из списка." + _invitation_email_line(data.get("invitation_email")),
-            reply_markup=booking_dates_keyboard(allowed_dates),
-        )
+    if "settings_version" not in data or "page_from" not in data:
+        await message.answer("Форма устарела. Начните запись заново.")
         return
-
-    async with session_factory() as session:
-        busy_starts = await get_busy_starts(session)
-        profile = await get_active_owner_profile(session)
-        if profile is not None:
-            try:
-                google_busy_starts = await get_google_busy_starts_for_date(
-                    session,
-                    settings=settings,
-                    owner_user_id=profile.user_id,
-                    selected_date=selected_date,
-                    duration_minutes=data.get("duration", 60),
-                    min_notice_hours=data.get("notice", 24),
-                )
-            except Exception as exc:
-                await message.answer(f"Не удалось проверить занятость Google Calendar: {exc}")
-                return
-            busy_starts |= google_busy_starts
-
-    slots = available_slots_for_date(
-        selected_date,
-        busy_starts=busy_starts,
-        duration_minutes=data.get("duration", 60),
-        min_notice_hours=data.get("notice", 24),
-    )
-    if not slots:
-        await message.answer(
-            "На эту дату свободных слотов уже нет. Выберите другую дату." + _invitation_email_line(data.get("invitation_email")),
-            reply_markup=booking_dates_keyboard(allowed_dates),
-        )
+    text = (message.text or "").strip()
+    if text in {"Следующие даты", "Предыдущие даты"}:
+        forward = text == "Следующие даты"
+        if not data.get("date_next" if forward else "date_previous"):
+            await message.answer("Выберите дату из списка.", reply_markup=_booking_dates_markup(data))
+            return
+        first = data["page_to"]+timedelta(days=1) if forward else data["page_from"]-timedelta(days=31)
+        view = await _booking_availability(message, booking_runtime, "days", actor_id=user.id,
+            from_date=first, settings_version=data["settings_version"])
+        if view is not None:
+            await _show_booking_dates(message, state, view)
         return
-
-    await state.update_data(selected_date=selected_date, slots=slots)
+    selected_date = parse_moscow_date(text)
+    if selected_date not in data.get("allowed_dates", []):
+        await message.answer("Выберите дату кнопкой из списка.", reply_markup=_booking_dates_markup(data))
+        return
+    view = await _booking_availability(message, booking_runtime, "slots", actor_id=user.id,
+        date=selected_date, settings_version=data["settings_version"])
+    if view is None:
+        return
+    if not view.slots:
+        await message.answer("На эту дату свободного времени уже нет. Выберите другую дату.",
+                             reply_markup=_booking_dates_markup(data))
+        return
+    slots = [interval.start.astimezone(MOSCOW_TZ) for interval in view.slots]
+    await state.update_data(selected_date=selected_date, slots=slots, booking_command_id=uuid.uuid4().hex)
     await state.set_state(Booking.waiting_for_time)
-    await message.answer(
-        "Выберите время кнопкой ниже." + _invitation_email_line(data.get("invitation_email")),
-        reply_markup=booking_times_keyboard(slots),
-    )
+    await message.answer("Выберите время кнопкой ниже." + _invitation_email_line(data.get("invitation_email")),
+                         reply_markup=booking_times_keyboard(slots))
 
 
 @router.message(Booking.waiting_for_time)
 async def choose_time(message: Message, state: FSMContext, settings: Settings, session_factory, booking_runtime=None):
-    selected_time = parse_moscow_time(message.text or "")
-    if selected_time is None:
-        data = await state.get_data()
-        await message.answer(
-            "Выберите время кнопкой ниже." + _invitation_email_line(data.get("invitation_email")),
-            reply_markup=booking_times_keyboard(data.get("slots", [])),
-        )
+    user = await _require_registered_client(message, settings, session_factory)
+    if user is None:
         return
-
     data = await state.get_data()
-    selected_start = None
-    for slot in data["slots"]:
-        if slot.time() == selected_time:
-            selected_start = slot
-            break
-
-    if selected_start is None:
-        await message.answer(
-            "Это время недоступно. Выберите время кнопкой из списка." + _invitation_email_line(data.get("invitation_email")),
-            reply_markup=booking_times_keyboard(data["slots"]),
-        )
+    if not all(key in data for key in ("slots", "selected_date", "settings_version")):
+        await message.answer("Форма устарела. Начните запись заново.")
         return
-
-    async with session_factory() as session:
-        busy_starts = await get_busy_starts(session)
-        profile = await get_active_owner_profile(session)
-        if profile is not None:
-            try:
-                google_busy_starts = await get_google_busy_starts_for_date(
-                    session,
-                    settings=settings,
-                    owner_user_id=profile.user_id,
-                    selected_date=data["selected_date"],
-                    duration_minutes=data.get("duration", 60),
-                    min_notice_hours=data.get("notice", 24),
-                )
-            except Exception as exc:
-                await message.answer(f"Не удалось проверить занятость Google Calendar: {exc}")
-                return
-            busy_starts |= google_busy_starts
-    if selected_start not in available_slots_for_date(
-        data["selected_date"],
-        busy_starts=busy_starts,
-        duration_minutes=data.get("duration", 60),
-        min_notice_hours=data.get("notice", 24),
-    ):
-        await message.answer("Слот уже заняли. Давайте выберем дату и время заново.")
+    selected_time = parse_moscow_time(message.text or "")
+    selected_start = next((slot for slot in data["slots"] if slot.time() == selected_time), None)
+    if selected_start is None:
+        await message.answer("Выберите время кнопкой из списка.", reply_markup=booking_times_keyboard(data["slots"]))
+        return
+    view = await _booking_availability(message, booking_runtime, "slots", actor_id=user.id,
+        date=data["selected_date"], settings_version=data["settings_version"])
+    if view is None:
+        return
+    if selected_start not in [interval.start for interval in view.slots]:
+        await message.answer("Это время уже недоступно. Выберите дату и время заново.")
         await start_booking(message, state, settings, session_factory, booking_runtime)
         return
-
-    await state.update_data(selected_start=selected_start)
+    await state.update_data(selected_start=selected_start, booking_command_id=uuid.uuid4().hex)
     await state.set_state(Booking.waiting_for_title)
-    await message.answer(
-        "Введите название встречи. От 3 до 100 символов.",
-        reply_markup=ReplyKeyboardRemove(),
-    )
+    await message.answer("Введите название встречи. От 3 до 100 символов.", reply_markup=ReplyKeyboardRemove())
 
 
 @router.message(Booking.waiting_for_title)

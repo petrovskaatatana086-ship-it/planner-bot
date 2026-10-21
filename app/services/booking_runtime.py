@@ -13,6 +13,7 @@ from app.db.base import Base
 from app.db.models import User
 from app.integrations.google_events import GoogleEventGateway
 from app.services.availability import GoogleAvailability
+from app.services.availability_queries import AvailabilityQueries
 from app.services.booking import BookingCommands
 from app.services.bot_booking import BotBooking
 from app.services.booking_deliveries import BookingDeliveries
@@ -62,6 +63,7 @@ class BookingRuntime:
     def __init__(self, *, commands, worker):
         self.commands = commands
         self.bot_commands = BotBooking(commands) if commands is not None else None
+        self.availability_queries = AvailabilityQueries(commands) if commands is not None else None
         self.worker = worker
         self._task = None
         self._stop = None

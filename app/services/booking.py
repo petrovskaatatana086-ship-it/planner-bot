@@ -18,6 +18,7 @@ from app.db.models import (
 from app.db.transactions import run_sqlite_write
 from app.domain.booking import MOSCOW_TZ, WORKDAYS, WORK_START, WORK_END, validate_title
 from app.domain.intervals import Interval, utc
+from app.domain.booking_policy import BookingPolicyError, check_local, check_schedule
 from app.services.availability import (
     AvailabilityPlan, AvailabilityTarget, CalendarUnavailable, GoogleAvailability, SnapshotChanged, configured,
 )
@@ -152,45 +153,19 @@ class BookingCommands:
         meetings = (await session.scalars(select(Meeting).where(Meeting.status.in_(ACTIVE)))).all()
         occupied = [Interval(x.start_at, x.end_at) for x in requests if x.id != exclude_request]
         occupied += [Interval(x.start_at, x.end_at) for x in meetings if x.id != exclude_meeting]
-        if any(interval.conflicts(other, profile.buffer_minutes) for other in occupied):
-            raise BookingError("SLOT_UNAVAILABLE")
-        day = interval.start.astimezone(MOSCOW_TZ).date()
-        count = sum(other.start.astimezone(MOSCOW_TZ).date() == day for other in occupied)
-        if count >= profile.daily_limit:
-            raise BookingError("DAILY_LIMIT_REACHED")
+        try:
+            check_local(profile, interval, occupied)
+        except BookingPolicyError as error:
+            raise BookingError(error.code) from None
 
     @staticmethod
     async def _schedule(session, profile, interval, now):
-        local = interval.start.astimezone(MOSCOW_TZ)
-        end = interval.end.astimezone(MOSCOW_TZ)
-        if interval.start < now + timedelta(hours=profile.min_booking_notice_hours):
-            raise BookingError("NOTICE_REQUIRED")
-        if not now.astimezone(MOSCOW_TZ).date() <= local.date() <= (
-            now.astimezone(MOSCOW_TZ).date() + timedelta(days=profile.booking_horizon_days)
-        ):
-            raise BookingError("OUTSIDE_HORIZON")
         rules = (await session.scalars(select(ScheduleRule).where(
             ScheduleRule.owner_id == profile.user_id))).all()
-        if rules:
-            spans = sorted((r.start_time, r.end_time) for r in rules
-                           if r.is_active and r.weekday == local.weekday())
-        else:
-            spans = [(WORK_START, WORK_END)] if local.weekday() in WORKDAYS else []
-        # Merge overlapping schedule windows before checking the hourly grid.
-        merged = []
-        for start, finish in spans:
-            if finish <= start:
-                raise BookingError("INVALID_SCHEDULE")
-            if merged and start <= merged[-1][1]:
-                merged[-1] = (merged[-1][0], max(finish, merged[-1][1]))
-            else:
-                merged.append((start, finish))
-        for start, finish in merged:
-            window_start = datetime.combine(local.date(), start, tzinfo=MOSCOW_TZ)
-            window_end = datetime.combine(local.date(), finish, tzinfo=MOSCOW_TZ)
-            if window_start <= local and end <= window_end and (local-window_start).total_seconds() % 3600 == 0:
-                return
-        raise BookingError("OUTSIDE_SCHEDULE")
+        try:
+            check_schedule(profile, rules, interval, now)
+        except BookingPolicyError as error:
+            raise BookingError(error.code) from None
 
     async def create_request(self, *, actor_id, command_id, start_at, title, comment=None, settings_version):
         if not isinstance(start_at, datetime) or start_at.tzinfo is None:

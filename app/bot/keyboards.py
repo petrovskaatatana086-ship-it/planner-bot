@@ -45,7 +45,7 @@ def confirm_registration_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
-def booking_dates_keyboard(dates: list[date]) -> ReplyKeyboardMarkup:
+def booking_dates_keyboard(dates: list[date], *, previous_page=False, next_page=False) -> ReplyKeyboardMarkup:
     rows: list[list[KeyboardButton]] = []
     row: list[KeyboardButton] = []
     for item in dates:
@@ -55,6 +55,13 @@ def booking_dates_keyboard(dates: list[date]) -> ReplyKeyboardMarkup:
             row = []
     if row:
         rows.append(row)
+    navigation = []
+    if previous_page:
+        navigation.append(KeyboardButton(text="Предыдущие даты"))
+    if next_page:
+        navigation.append(KeyboardButton(text="Следующие даты"))
+    if navigation:
+        rows.append(navigation)
     rows.append([KeyboardButton(text="Отмена")])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, one_time_keyboard=True)
 

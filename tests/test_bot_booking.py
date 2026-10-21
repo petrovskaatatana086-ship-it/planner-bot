@@ -224,13 +224,11 @@ class BotBookingTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(callback.answer.call_args.kwargs["show_alert"])
 
     async def test_start_form_captures_settings_and_new_form_identity_without_draft(self):
-        with patch("app.bot.handlers.available_dates", return_value=[self.start.date()]):
-            await handlers.start_booking(self.message(), self.state, self.settings, self.sessions, self.runtime)
+        await handlers.start_booking(self.message(), self.state, self.settings, self.sessions, self.runtime)
         first = await self.state.get_data()
         self.assertEqual(first["settings_version"], 1)
         self.assertTrue(first["booking_command_id"])
-        with patch("app.bot.handlers.available_dates", return_value=[self.start.date()]):
-            await handlers.booking_change_date(self.message(), self.state, self.settings, self.sessions, self.runtime)
+        await handlers.booking_change_date(self.message(), self.state, self.settings, self.sessions, self.runtime)
         self.assertNotEqual(first["booking_command_id"], (await self.state.get_data())["booking_command_id"])
 
     async def test_captured_proposal_decision_does_not_target_a_new_proposal(self):
