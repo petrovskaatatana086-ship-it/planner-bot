@@ -123,6 +123,59 @@ class BotBookingTest(unittest.IsolatedAsyncioTestCase):
         async with self.sessions() as session:
             self.assertEqual((await session.get(Meeting, meeting.id)).status, "reschedule_pending")
 
+    async def test_owner_lists_and_moves_meeting_without_google(self):
+        meeting = await self.meeting()
+        message = self.message(owner=True)
+        await handlers.my_meetings(message, self.settings, self.sessions, self.runtime)
+        button = message.answer.call_args.kwargs["reply_markup"].inline_keyboard[0][0]
+        self.assertEqual(button.callback_data, f"owner_meeting_move:{meeting.id}:1")
+        await handlers.meeting_move_callback(self.meeting_callback(button.callback_data, owner=True),
+            self.state, self.settings, self.sessions, self.runtime)
+        await handlers.submit_meeting_move(self.message("27.10.2026 11:00", owner=True),
+            self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNone(await self.state.get_state())
+        async with self.sessions() as session:
+            current = await session.get(Meeting, meeting.id)
+            self.assertEqual(current.status, "rescheduled")
+            self.assertEqual(current.start_at, datetime(2026, 10, 27, 8))
+
+    async def test_owner_cancels_with_confirmation_and_replay(self):
+        meeting = await self.meeting()
+        callback = self.meeting_callback(f"owner_meeting_cancel:{meeting.id}:1", owner=True)
+        await handlers.meeting_cancel_callback(callback, self.settings, self.sessions, self.runtime)
+        async with self.sessions() as session:
+            self.assertEqual((await session.get(Meeting, meeting.id)).status, "confirmed")
+        data = callback.message.answer.call_args.kwargs["reply_markup"].inline_keyboard[0][0].callback_data
+        yes = self.meeting_callback(data, owner=True)
+        await handlers.confirm_meeting_cancel_callback(yes, self.settings, self.sessions, self.runtime)
+        await handlers.confirm_meeting_cancel_callback(yes, self.settings, self.sessions, self.runtime)
+        async with self.sessions() as session:
+            current = await session.get(Meeting, meeting.id)
+            self.assertEqual((current.status, current.version), ("cancelled_by_owner", 2))
+
+    async def test_client_cannot_use_owner_actions(self):
+        meeting = await self.meeting()
+        callback = self.meeting_callback(f"owner_meeting_move:{meeting.id}:1")
+        await handlers.meeting_move_callback(callback, self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNone(await self.state.get_state())
+        self.assertTrue(callback.answer.call_args.kwargs["show_alert"])
+        callback = self.meeting_callback(f"owner_meeting_cancel_yes:{meeting.id}:1")
+        await handlers.confirm_meeting_cancel_callback(callback, self.settings, self.sessions, self.runtime)
+        async with self.sessions() as session:
+            self.assertEqual((await session.get(Meeting, meeting.id)).status, "confirmed")
+
+    async def test_owner_abandons_form_and_keeps_admin_menu(self):
+        meeting = await self.meeting()
+        await handlers.meeting_move_callback(self.meeting_callback(f"owner_meeting_move:{meeting.id}:1", owner=True),
+            self.state, self.settings, self.sessions, self.runtime)
+        message = self.message("Отмена", owner=True)
+        await handlers.submit_meeting_move(message, self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNone(await self.state.get_state())
+        texts = [b.text for row in message.answer.call_args.kwargs["reply_markup"].keyboard for b in row]
+        self.assertIn("Новые заявки", texts)
+        async with self.sessions() as session:
+            self.assertEqual((await session.get(Meeting, meeting.id)).version, 1)
+
     async def asyncSetUp(self):
         self.path = Path.cwd()/f".test_bot_booking_{uuid.uuid4().hex}.db"
         self.settings = Settings(_env_file=None, BOT_TOKEN="123:abc", OWNER_TELEGRAM_ID=777,

@@ -593,22 +593,26 @@ async def my_meetings(message: Message, settings: Settings, session_factory, boo
     user = await _load_user(message, settings, session_factory)
     if user is None:
         return
-    if user.role == OWNER_ROLE:
-        await message.answer("Список встреч владельца появится после подключения календаря.")
+    if user.status != "active":
+        await message.answer("Нет доступа")
         return
-
+    owner = user.telegram_id == settings.owner_telegram_id
+    now = booking_runtime.commands.clock() if booking_runtime else datetime.now(timezone.utc)
     async with session_factory() as session:
-        meetings = await list_client_meetings(session, user.id)
+        if owner:
+            meetings = (await session.scalars(select(Meeting).where(
+                Meeting.end_at > now).order_by(Meeting.start_at, Meeting.id).limit(20))).all()
+        else:
+            meetings = await list_client_meetings(session, user.id)
 
     if not meetings:
         await message.answer("У вас пока нет подтвержденных встреч.")
         return
-    now = booking_runtime.commands.clock() if booking_runtime else datetime.now(timezone.utc)
     labels = {"confirmed": "Подтверждена", "rescheduled": "Перенесена", "reschedule_pending": "Ожидает решения по переносу",
               "cancelled_by_owner": "Отменена специалистом", "cancelled_by_client": "Отменена клиентом"}
     for item in meetings:
         active = item.status in {"confirmed", "rescheduled", "reschedule_pending"} and utc(item.start_at) > now
-        markup = meeting_actions_keyboard(item.id, item.version, moving=item.status == "reschedule_pending") if active and booking_runtime else None
+        markup = meeting_actions_keyboard(item.id, item.version, moving=item.status == "reschedule_pending", owner=owner) if active and booking_runtime else None
         await message.answer(f"Встреча #{item.id}\nДата и время: {format_moscow_dt(item.start_at)} МСК\n"
             f"Название: {item.title}\nСтатус: {labels.get(item.status, item.status)}", reply_markup=markup)
 
@@ -617,33 +621,34 @@ def _callback_command_key(callback, settings):
     return hashlib.sha256(f"telegram:{settings.bot_token.split(':', 1)[0]}:callback:{callback.id}".encode()).hexdigest()
 
 
-async def _client_meeting_action(callback, settings, session_factory, booking_runtime, *, moving=False):
+async def _meeting_action(callback, settings, session_factory, booking_runtime, *, moving=False, owner=False):
     if booking_runtime is None:
         raise BookingError("BOOKING_UNAVAILABLE")
     actor = await _load_callback_user(callback, settings, session_factory)
     if actor is None or actor.status != "active":
         raise BookingError("ACCOUNT_BLOCKED")
-    if actor.telegram_id == settings.owner_telegram_id:
+    if (actor.telegram_id == settings.owner_telegram_id) != owner:
         raise BookingError("FORBIDDEN")
-    if not actor.email or not actor.consent_at:
+    if not owner and (not actor.email or not actor.consent_at):
         raise BookingError("REGISTRATION_REQUIRED")
     _, identifier, version = callback.data.split(":")
     async with session_factory() as session:
         meeting = await session.get(Meeting, int(identifier))
-        if meeting is None or meeting.client_id != actor.id:
+        if meeting is None or (not owner and meeting.client_id != actor.id):
             raise BookingError("RESOURCE_NOT_FOUND")
         if meeting.version != int(version):
             raise BookingError("STALE_VERSION")
-        allowed = {"confirmed", "rescheduled"} if moving else {"confirmed", "rescheduled", "reschedule_pending"}
+        allowed = {"confirmed", "rescheduled"} if moving and not owner else {"confirmed", "rescheduled", "reschedule_pending"}
         if meeting.status not in allowed or utc(meeting.start_at) <= booking_runtime.commands.clock():
             raise BookingError("INVALID_STATE")
     return actor, meeting
 
 
-@router.callback_query(F.data.regexp(r"^meeting_move:\d+:\d+$"))
+@router.callback_query(F.data.regexp(r"^(meeting_move|owner_meeting_move):\d+:\d+$"))
 async def meeting_move_callback(callback: CallbackQuery, state: FSMContext, settings: Settings, session_factory, booking_runtime=None):
+    owner = callback.data.startswith("owner_meeting_move:")
     try:
-        actor, meeting = await _client_meeting_action(callback, settings, session_factory, booking_runtime, moving=True)
+        actor, meeting = await _meeting_action(callback, settings, session_factory, booking_runtime, moving=True, owner=owner)
     except (BookingError, DatabaseBusy) as error:
         await callback.answer(_command_error(error), show_alert=True)
         return
@@ -651,25 +656,29 @@ async def meeting_move_callback(callback: CallbackQuery, state: FSMContext, sett
         await callback.answer("Откройте встречу в личном чате с ботом.", show_alert=True)
         return
     await state.clear()
-    await state.update_data(move_meeting_id=meeting.id, move_version=meeting.version, move_actor_id=actor.id)
+    await state.update_data(move_meeting_id=meeting.id, move_version=meeting.version, move_actor_id=actor.id, move_owner=owner)
     await state.set_state(MeetingMove.waiting_for_datetime)
     example = utc(meeting.start_at) + timedelta(days=1)
     while example.weekday() >= 5:
         example += timedelta(days=1)
     await callback.message.answer(f"Перенос встречи #{meeting.id}. Введите новую дату и время по Москве: ДД.ММ.ГГГГ ЧЧ:ММ.\n"
         f"Например: {format_moscow_dt(example)}. Бот проверит доступность времени.\n"
-        "До согласования специалистом прежнее время встречи остаётся в силе.", reply_markup=meeting_move_keyboard())
+        + ("Встреча будет перенесена, клиент получит уведомление." if owner else "До согласования специалистом прежнее время встречи остаётся в силе."), reply_markup=meeting_move_keyboard())
     await callback.answer()
 
 
 @router.message(MeetingMove.waiting_for_datetime)
 async def submit_meeting_move(message: Message, state: FSMContext, settings: Settings, session_factory, booking_runtime=None):
+    data = await state.get_data()
+    is_owner = message.from_user.id == settings.owner_telegram_id
+    menu = owner_main_menu() if is_owner else client_main_menu()
     if message.text in {"Отмена", "Мои встречи"}:
         await state.clear()
-        await message.answer("Выбор нового времени отменён. Встреча сохранена.", reply_markup=client_main_menu())
+        await message.answer("Выбор нового времени отменён. Встреча сохранена.", reply_markup=menu)
         return
-    client = await _require_registered_client(message, settings, session_factory)
-    if client is None:
+    client = (await _load_user(message, settings, session_factory) if is_owner
+              else await _require_registered_client(message, settings, session_factory))
+    if client is None or client.status != "active":
         return
     parts = (message.text or "").split()
     day = parse_moscow_date(parts[0]) if len(parts) == 2 else None
@@ -677,42 +686,45 @@ async def submit_meeting_move(message: Message, state: FSMContext, settings: Set
     if day is None or time is None:
         await message.answer("Введите дату и время в формате ДД.ММ.ГГГГ ЧЧ:ММ.")
         return
-    data = await state.get_data()
-    if data.get("move_actor_id") != client.id or not data.get("move_meeting_id") or not data.get("move_version"):
+    if bool(data.get("move_owner")) != is_owner or data.get("move_actor_id") != client.id or not data.get("move_meeting_id") or not data.get("move_version"):
         await state.clear()
-        await message.answer("Форма устарела. Откройте «Мои встречи» заново.", reply_markup=client_main_menu())
+        await message.answer("Форма устарела. Откройте «Мои встречи» заново.", reply_markup=menu)
         return
-    result = await _booking_command(message, booking_runtime, "request_reschedule", actor=client,
-        command_id=_message_command_key(message, settings, "request_reschedule_form"),
+    action = "reschedule_by_owner" if is_owner else "request_reschedule"
+    result = await _booking_command(message, booking_runtime, action, actor=client,
+        command_id=_message_command_key(message, settings, action + "_form"),
         meeting_id=data["move_meeting_id"], expected_version=data["move_version"],
         start_at=to_utc(datetime.combine(day, time, tzinfo=MOSCOW_TZ)))
     if result is not None:
         await state.clear()
-        await message.answer("Запрос переноса сохранён. До решения специалиста действует прежнее время встречи.", reply_markup=client_main_menu())
+        await message.answer("Встреча перенесена. Клиент получит уведомление." if is_owner else "Запрос переноса сохранён. До решения специалиста действует прежнее время встречи.", reply_markup=menu)
 
 
-@router.callback_query(F.data.regexp(r"^meeting_cancel:\d+:\d+$"))
+@router.callback_query(F.data.regexp(r"^(meeting_cancel|owner_meeting_cancel):\d+:\d+$"))
 async def meeting_cancel_callback(callback: CallbackQuery, settings: Settings, session_factory, booking_runtime=None):
+    owner = callback.data.startswith("owner_meeting_cancel:")
     try:
-        _, meeting = await _client_meeting_action(callback, settings, session_factory, booking_runtime)
+        _, meeting = await _meeting_action(callback, settings, session_factory, booking_runtime, owner=owner)
     except (BookingError, DatabaseBusy) as error:
         await callback.answer(_command_error(error), show_alert=True)
         return
     if isinstance(callback.message, Message):
         await callback.message.answer(f"Отменить встречу #{meeting.id} на {format_moscow_dt(meeting.start_at)} МСК?",
-            reply_markup=meeting_cancel_keyboard(meeting.id, meeting.version))
+            reply_markup=meeting_cancel_keyboard(meeting.id, meeting.version, owner=owner))
     await callback.answer()
 
 
-@router.callback_query(F.data.regexp(r"^meeting_cancel_yes:\d+:\d+$"))
+@router.callback_query(F.data.regexp(r"^(meeting_cancel_yes|owner_meeting_cancel_yes):\d+:\d+$"))
 async def confirm_meeting_cancel_callback(callback: CallbackQuery, settings: Settings, session_factory, booking_runtime=None):
     actor = await _load_callback_user(callback, settings, session_factory)
-    if actor is None or actor.telegram_id == settings.owner_telegram_id or not isinstance(callback.message, Message):
+    owner = callback.data.startswith("owner_meeting_cancel_yes:")
+    if (actor is None or actor.status != "active"
+            or (actor.telegram_id == settings.owner_telegram_id) != owner or not isinstance(callback.message, Message)):
         await callback.answer("Нет доступа", show_alert=True)
         return
     _, identifier, version = callback.data.split(":")
     result = await _booking_command(callback.message, booking_runtime, "cancel_meeting", actor=actor,
-        command_id=_callback_command_key(callback, settings), meeting_id=int(identifier), expected_version=int(version), reason="Отменено клиентом")
+        command_id=_callback_command_key(callback, settings), meeting_id=int(identifier), expected_version=int(version), reason="Отменено специалистом" if owner else "Отменено клиентом")
     if result is not None:
         await callback.message.answer(f"Встреча #{identifier} отменена. Обновите «Мои встречи».")
     await callback.answer("Отмена сохранена" if result is not None else "Не удалось отменить встречу")

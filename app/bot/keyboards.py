@@ -15,17 +15,19 @@ def client_main_menu() -> ReplyKeyboardMarkup:
     )
 
 
-def meeting_actions_keyboard(meeting_id, version, *, moving=False):
+def meeting_actions_keyboard(meeting_id, version, *, moving=False, owner=False):
+    prefix = "owner_meeting" if owner else "meeting"
     rows = []
-    if not moving:
-        rows.append([InlineKeyboardButton(text="Перенести", callback_data=f"meeting_move:{meeting_id}:{version}")])
-    rows.append([InlineKeyboardButton(text="Отменить встречу", callback_data=f"meeting_cancel:{meeting_id}:{version}")])
+    if not moving or owner:
+        rows.append([InlineKeyboardButton(text="Перенести", callback_data=f"{prefix}_move:{meeting_id}:{version}")])
+    rows.append([InlineKeyboardButton(text="Отменить встречу", callback_data=f"{prefix}_cancel:{meeting_id}:{version}")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def meeting_cancel_keyboard(meeting_id, version):
+def meeting_cancel_keyboard(meeting_id, version, *, owner=False):
+    prefix = "owner_meeting" if owner else "meeting"
     return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Да, отменить", callback_data=f"meeting_cancel_yes:{meeting_id}:{version}"),
+        InlineKeyboardButton(text="Да, отменить", callback_data=f"{prefix}_cancel_yes:{meeting_id}:{version}"),
         InlineKeyboardButton(text="Оставить встречу", callback_data="meeting_cancel_no"),
     ]])
 
