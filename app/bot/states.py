@@ -22,3 +22,11 @@ class Rejection(StatesGroup):
 
 class GoogleCalendarSelection(StatesGroup):
     waiting_for_calendar_number = State()
+
+
+class MeetingMove(StatesGroup):
+    waiting_for_datetime = State()
+
+
+class MoveRejection(StatesGroup):
+    waiting_for_reason = State()

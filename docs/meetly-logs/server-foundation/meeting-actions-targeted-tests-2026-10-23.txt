@@ -1,0 +1,30 @@
+test_approval_replays_after_commit_and_new_adapter (tests.test_bot_booking.BotBookingTest.test_approval_replays_after_commit_and_new_adapter) ... ok
+test_blocked_actor_cannot_replay (tests.test_bot_booking.BotBookingTest.test_blocked_actor_cannot_replay) ... ok
+test_bot_submit_records_once_and_no_direct_send (tests.test_bot_booking.BotBookingTest.test_bot_submit_records_once_and_no_direct_send) ... ok
+test_calendar_binding_error_is_safe_and_booking_is_rolled_back (tests.test_bot_booking.BotBookingTest.test_calendar_binding_error_is_safe_and_booking_is_rolled_back) ... ok
+test_cancel_button_requires_confirmation_and_replays_once (tests.test_bot_booking.BotBookingTest.test_cancel_button_requires_confirmation_and_replays_once) ... ok
+test_cancel_replays_without_changing_version_or_notices (tests.test_bot_booking.BotBookingTest.test_cancel_replays_without_changing_version_or_notices) ... ok
+test_captured_proposal_decision_does_not_target_a_new_proposal (tests.test_bot_booking.BotBookingTest.test_captured_proposal_decision_does_not_target_a_new_proposal) ... ok
+test_client_meeting_cards_show_actions_and_transfer_reaches_owner (tests.test_bot_booking.BotBookingTest.test_client_meeting_cards_show_actions_and_transfer_reaches_owner) ... ok
+test_concurrent_same_message_captures_one_version (tests.test_bot_booking.BotBookingTest.test_concurrent_same_message_captures_one_version) ... ok
+test_explicit_wrong_proposal_id_is_never_rebound_by_bot_adapter (tests.test_bot_booking.BotBookingTest.test_explicit_wrong_proposal_id_is_never_rebound_by_bot_adapter) ... Executing <Task pending name='Task-195' coro=<BotBookingTest.test_explicit_wrong_proposal_id_is_never_rebound_by_bot_adapter() running at C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\tests\test_bot_booking.py:117> wait_for=<Future pending cb=[Task.task_wakeup()] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:448> cb=[_run_until_complete_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:181] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:100> took 0.109 seconds
+ok
+test_failed_operation_does_not_rebind_versions_on_retry (tests.test_bot_booking.BotBookingTest.test_failed_operation_does_not_rebind_versions_on_retry) ... ok
+test_foreign_and_stale_move_buttons_do_not_start_a_form (tests.test_bot_booking.BotBookingTest.test_foreign_and_stale_move_buttons_do_not_start_a_form) ... ok
+test_key_cannot_be_reused_for_another_action (tests.test_bot_booking.BotBookingTest.test_key_cannot_be_reused_for_another_action) ... ok
+test_move_form_validation_and_abandonment_preserve_meeting (tests.test_bot_booking.BotBookingTest.test_move_form_validation_and_abandonment_preserve_meeting) ... ok
+test_no_runtime_does_not_fall_back_to_legacy_writer (tests.test_bot_booking.BotBookingTest.test_no_runtime_does_not_fall_back_to_legacy_writer) ... ok
+test_old_callback_fails_and_buttons_include_version (tests.test_bot_booking.BotBookingTest.test_old_callback_fails_and_buttons_include_version) ... ok
+test_owner_rejection_form_preserves_old_time_and_selected_proposal (tests.test_bot_booking.BotBookingTest.test_owner_rejection_form_preserves_old_time_and_selected_proposal) ... ok
+test_real_owner_approval_and_rejection_handlers (tests.test_bot_booking.BotBookingTest.test_real_owner_approval_and_rejection_handlers) ... ok
+test_real_rejection_owner_move_and_owner_cancel (tests.test_bot_booking.BotBookingTest.test_real_rejection_owner_move_and_owner_cancel) ... ok
+test_real_reschedule_handlers_and_specific_proposal_replay (tests.test_bot_booking.BotBookingTest.test_real_reschedule_handlers_and_specific_proposal_replay) ... ok
+test_spoofed_owner_role_cannot_capture_approval (tests.test_bot_booking.BotBookingTest.test_spoofed_owner_role_cannot_capture_approval) ... ok
+test_stale_form_is_preserved_and_has_no_request (tests.test_bot_booking.BotBookingTest.test_stale_form_is_preserved_and_has_no_request) ... ok
+test_start_form_captures_settings_and_new_form_identity_without_draft (tests.test_bot_booking.BotBookingTest.test_start_form_captures_settings_and_new_form_identity_without_draft) ... ok
+test_versioned_callback_does_not_adopt_current_version (tests.test_bot_booking.BotBookingTest.test_versioned_callback_does_not_adopt_current_version) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 34.168s
+
+OK

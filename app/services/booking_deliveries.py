@@ -139,7 +139,8 @@ class BookingDeliveries:
                 return DeliveryResult("skipped", "NOT_APPLICABLE")
             return Notice(self.settings.owner_telegram_id, None, f"Запрос переноса встречи #{meeting.id}",
                 f"Клиент {client.full_name} просит перенести встречу #{meeting.id}.\n"
-                f"Сейчас: {when} МСК\nПредложено: {format_moscow_dt(proposal.proposed_start_at)} МСК")
+                f"Сейчас: {when} МСК\nПредложено: {format_moscow_dt(proposal.proposed_start_at)} МСК\n"
+                "Откройте «Новые заявки», чтобы согласовать или отклонить перенос.")
         if delivery.kind == "meeting.reschedule_rejected":
             proposal = await session.scalar(select(RescheduleRequest).where(
                 RescheduleRequest.meeting_id == meeting.id, RescheduleRequest.status == "rejected"

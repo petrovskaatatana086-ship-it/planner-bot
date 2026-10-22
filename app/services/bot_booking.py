@@ -79,7 +79,7 @@ class BotBooking:
                     RescheduleRequest.meeting_id == resource.id, RescheduleRequest.status == "pending"))
                 if proposal_id is None:
                     raise BookingError("INVALID_STATE")
-                payload["reschedule_request_id"] = proposal_id
+                payload.setdefault("reschedule_request_id", proposal_id)
             session.add(BotCommandInput(actor_id=actor_id, command_id=command_id,
                 input_hash=digest, payload_json=json.dumps(payload, sort_keys=True, ensure_ascii=False)))
             return payload

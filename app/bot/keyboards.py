@@ -15,6 +15,32 @@ def client_main_menu() -> ReplyKeyboardMarkup:
     )
 
 
+def meeting_actions_keyboard(meeting_id, version, *, moving=False):
+    rows = []
+    if not moving:
+        rows.append([InlineKeyboardButton(text="Перенести", callback_data=f"meeting_move:{meeting_id}:{version}")])
+    rows.append([InlineKeyboardButton(text="Отменить встречу", callback_data=f"meeting_cancel:{meeting_id}:{version}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def meeting_cancel_keyboard(meeting_id, version):
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Да, отменить", callback_data=f"meeting_cancel_yes:{meeting_id}:{version}"),
+        InlineKeyboardButton(text="Оставить встречу", callback_data="meeting_cancel_no"),
+    ]])
+
+
+def meeting_move_keyboard():
+    return ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Отмена")]], resize_keyboard=True)
+
+
+def owner_move_keyboard(meeting_id, version, proposal_id):
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Согласовать перенос", callback_data=f"ma:{meeting_id}:{version}:{proposal_id}"),
+        InlineKeyboardButton(text="Отклонить перенос", callback_data=f"mr:{meeting_id}:{version}:{proposal_id}"),
+    ]])
+
+
 def owner_main_menu() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[

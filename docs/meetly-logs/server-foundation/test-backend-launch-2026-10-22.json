@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "source_revision": "b4564bdb1d60513c9d8a8fa98f8b8efbf3ed5d84",
+  "image": "meetly-test:b4564bdb1d60513c9d8a8fa98f8b8efbf3ed5d84",
+  "base_image": "sha256:ad76301ebce7e02f6e58bfb490f704bc85ef1593ed3de31170501a918c8e76eb",
+  "image_id": "sha256:f3e5a5acbb5c693bedb7b5df7764045b0881f94eb482682acdb4d36f54f23b46",
+  "dependencies_sha256": "a4ac2848c830e186ea2e34eb84282f398f796979adf3534e00698c9d2535b0f8",
+  "test_container": "meetly-test-bot-1",
+  "health": {
+    "status": "ok",
+    "transport": "polling"
+  },
+  "production_unchanged": true,
+  "google_enabled": false,
+  "smtp_enabled": false,
+  "loopback_port": 8013,
+  "memory_limit_bytes": 268435456,
+  "data_mounts": [
+    {
+      "source": "/opt/meetly-test/data",
+      "destination": "/data"
+    }
+  ],
+  "test_bot_username": "meetly_tatyana_test_bot",
+  "manual_owner_start_confirmed": true,
+  "admin_menu_confirmed_by_user": true,
+  "additional_server_rehearsal_executed": false,
+  "additional_server_rehearsal_blocker": "APPROVAL_REVIEW_USAGE_LIMIT"
+}

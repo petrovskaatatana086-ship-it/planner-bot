@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.base import StorageKey
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import Message
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -24,6 +25,104 @@ from app.services.bot_booking import BotBooking
 
 
 class BotBookingTest(unittest.IsolatedAsyncioTestCase):
+    def meeting_callback(self, data, *, owner=False, identifier="callback-meeting"):
+        message = AsyncMock(spec=Message)
+        message.answer = AsyncMock()
+        return SimpleNamespace(data=data, id=identifier, from_user=self.message(owner=owner).from_user,
+            message=message, answer=AsyncMock(), bot=self.bot)
+
+    async def test_client_meeting_cards_show_actions_and_transfer_reaches_owner(self):
+        meeting = await self.meeting()
+        message = self.message()
+        await handlers.my_meetings(message, self.settings, self.sessions, self.runtime)
+        markup = message.answer.call_args.kwargs["reply_markup"]
+        self.assertEqual(markup.inline_keyboard[0][0].callback_data, f"meeting_move:{meeting.id}:1")
+        self.assertIn("Подтверждена", message.answer.call_args.args[0])
+        callback = self.meeting_callback(markup.inline_keyboard[0][0].callback_data)
+        await handlers.meeting_move_callback(callback, self.state, self.settings, self.sessions, self.runtime)
+        await handlers.submit_meeting_move(self.message("27.10.2026 11:00"), self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNone(await self.state.get_state())
+        async with self.sessions() as session:
+            current = await session.get(Meeting, meeting.id)
+            self.assertEqual(current.status, "reschedule_pending")
+            self.assertEqual(current.start_at, meeting.start_at)
+            proposal = await session.scalar(select(RescheduleRequest))
+        owner_message = self.message(owner=True)
+        await handlers.pending_requests(owner_message, self.settings, self.sessions)
+        decision = owner_message.answer.call_args.kwargs["reply_markup"].inline_keyboard[0][0].callback_data
+        self.assertEqual(decision, f"ma:{meeting.id}:2:{proposal.id}")
+        await handlers.owner_move_callback(self.meeting_callback(decision, owner=True), self.state,
+                                           self.settings, self.sessions, self.runtime)
+        async with self.sessions() as session:
+            current = await session.get(Meeting, meeting.id)
+            self.assertEqual(current.status, "rescheduled")
+            self.assertEqual(current.start_at, datetime(2026, 10, 27, 8))
+
+    async def test_cancel_button_requires_confirmation_and_replays_once(self):
+        meeting = await self.meeting()
+        callback = self.meeting_callback(f"meeting_cancel:{meeting.id}:1")
+        await handlers.meeting_cancel_callback(callback, self.settings, self.sessions, self.runtime)
+        async with self.sessions() as session:
+            self.assertEqual((await session.get(Meeting, meeting.id)).status, "confirmed")
+        confirmation = callback.message.answer.call_args.kwargs["reply_markup"].inline_keyboard[0][0].callback_data
+        yes = self.meeting_callback(confirmation)
+        await handlers.confirm_meeting_cancel_callback(yes, self.settings, self.sessions, self.runtime)
+        await handlers.confirm_meeting_cancel_callback(yes, self.settings, self.sessions, self.runtime)
+        async with self.sessions() as session:
+            current = await session.get(Meeting, meeting.id)
+            self.assertEqual((current.status, current.version), ("cancelled_by_client", 2))
+
+    async def test_foreign_and_stale_move_buttons_do_not_start_a_form(self):
+        meeting = await self.meeting()
+        async with self.sessions() as session:
+            (await session.get(Meeting, meeting.id)).version = 2
+            await session.commit()
+        callback = self.meeting_callback(f"meeting_move:{meeting.id}:1")
+        await handlers.meeting_move_callback(callback, self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNone(await self.state.get_state())
+        self.assertTrue(callback.answer.call_args.kwargs["show_alert"])
+        async with self.sessions() as session:
+            (await session.get(Meeting, meeting.id)).client_id = self.owner.id
+            await session.commit()
+        callback = self.meeting_callback(f"meeting_move:{meeting.id}:2")
+        await handlers.meeting_move_callback(callback, self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNone(await self.state.get_state())
+        self.assertTrue(callback.answer.call_args.kwargs["show_alert"])
+
+    async def test_move_form_validation_and_abandonment_preserve_meeting(self):
+        meeting = await self.meeting()
+        await handlers.meeting_move_callback(self.meeting_callback(f"meeting_move:{meeting.id}:1"), self.state,
+                                             self.settings, self.sessions, self.runtime)
+        await handlers.submit_meeting_move(self.message("wrong date"), self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNotNone(await self.state.get_state())
+        await handlers.submit_meeting_move(self.message("Отмена"), self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNone(await self.state.get_state())
+        self.assertEqual(await self.count(RescheduleRequest), 0)
+
+    async def test_owner_rejection_form_preserves_old_time_and_selected_proposal(self):
+        meeting = await self.meeting()
+        result = await self.adapter.execute("request_reschedule", actor_id=self.client.id, command_id="move-form-test",
+            meeting_id=meeting.id, start_at=datetime(2026, 10, 27, 8, tzinfo=timezone.utc))
+        callback = self.meeting_callback(f"mr:{meeting.id}:2:{result['reschedule_request_id']}", owner=True)
+        await handlers.owner_move_callback(callback, self.state, self.settings, self.sessions, self.runtime)
+        await handlers.reject_move_form(self.message("Другое время", owner=True), self.state,
+                                        self.settings, self.sessions, self.runtime)
+        async with self.sessions() as session:
+            current = await session.get(Meeting, meeting.id)
+            self.assertEqual(current.status, "confirmed")
+            self.assertEqual(current.start_at, meeting.start_at)
+            self.assertEqual((await session.get(RescheduleRequest, result['reschedule_request_id'])).status, "rejected")
+
+    async def test_explicit_wrong_proposal_id_is_never_rebound_by_bot_adapter(self):
+        meeting = await self.meeting()
+        await self.adapter.execute("request_reschedule", actor_id=self.client.id, command_id="move-pin-test",
+            meeting_id=meeting.id, start_at=datetime(2026, 10, 27, 8, tzinfo=timezone.utc))
+        with self.assertRaises(BookingError):
+            await self.adapter.execute("approve_reschedule", actor_id=self.owner.id, command_id="wrong-proposal",
+                meeting_id=meeting.id, expected_version=2, reschedule_request_id=99999)
+        async with self.sessions() as session:
+            self.assertEqual((await session.get(Meeting, meeting.id)).status, "reschedule_pending")
+
     async def asyncSetUp(self):
         self.path = Path.cwd()/f".test_bot_booking_{uuid.uuid4().hex}.db"
         self.settings = Settings(_env_file=None, BOT_TOKEN="123:abc", OWNER_TELEGRAM_ID=777,
