@@ -63,7 +63,7 @@ class MigrationRehearsalTest(unittest.TestCase):
             report = self.run_rehearsal()
         self.assertTrue(report["ok"], report)
         self.assertEqual(report["original_revision"], ["0005_meeting_google_event_url"])
-        self.assertEqual(report["upgraded_revision"], ["0011_bot_command_inputs"])
+        self.assertEqual(report["upgraded_revision"], ["0012_api_sessions"])
         self.assertEqual(fingerprint(self.source), before)
         self.assertEqual(fingerprint(self.root/"rehearsal"/"restored.sqlite3"), before)
         serialized = json.dumps(report)

@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-22T21:54:14.703Z",
+  "checks": [
+    {
+      "name": "verified client identity and no role selector",
+      "result": "PASS"
+    },
+    {
+      "name": "client-calendar-desktop: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "client-calendar-mobile: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "client-calendar-narrow: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "review before sending",
+      "result": "PASS"
+    },
+    {
+      "name": "request persisted on server",
+      "result": "PASS"
+    },
+    {
+      "name": "owner-inbox-mobile: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "owner sees meeting actions",
+      "result": "PASS"
+    },
+    {
+      "name": "reschedule offers server slots",
+      "result": "PASS"
+    },
+    {
+      "name": "owner direct reschedule saved",
+      "result": "PASS"
+    },
+    {
+      "name": "cancellation asks confirmation",
+      "result": "PASS"
+    },
+    {
+      "name": "cancelled status loaded",
+      "result": "PASS"
+    },
+    {
+      "name": "owner-settings-narrow: no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "new client must register",
+      "result": "PASS"
+    },
+    {
+      "name": "registered client sees calendar",
+      "result": "PASS"
+    }
+  ],
+  "errors": [],
+  "status": "PASS"
+}

@@ -65,9 +65,13 @@ async def main() -> None:
     dispatcher.include_router(router)
     runtime = None
 
-    web_app = create_web_app(settings, session_factory, bot, dispatcher)
+    if settings.booking_runtime_enabled:
+        runtime = build_booking_runtime(session_factory, settings=settings, bot=bot,
+            environment=settings.calendar_environment)
+        dispatcher["booking_runtime"] = runtime
+    web_app = create_web_app(settings, session_factory, bot, dispatcher, booking_runtime=runtime)
     # OAuth callback URLs contain one-time codes and state; keep them out of logs.
-    runner = web.AppRunner(web_app, access_log=None)
+    runner = web.AppRunner(web_app, access_log=None, max_field_size=20000)
     webhook_started = False
     try:
         await runner.setup()
@@ -76,9 +80,6 @@ async def main() -> None:
         logger.info("Web callback server started on %s:%s", settings.web_host, settings.web_port)
         await configure_transport(bot, dispatcher, settings)
         if settings.booking_runtime_enabled:
-            runtime = build_booking_runtime(session_factory, settings=settings, bot=bot,
-                environment=settings.calendar_environment)
-            dispatcher["booking_runtime"] = runtime
             await runtime.start()
         web_app[TELEGRAM_STATE].ready = True
         if settings.bot_mode == "webhook":

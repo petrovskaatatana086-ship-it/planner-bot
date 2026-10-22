@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     booking_runtime_enabled: bool = Field(default=False, alias="BOOKING_RUNTIME_ENABLED")
     calendar_environment: str = Field(default="", alias="CALENDAR_ENVIRONMENT")
+    miniapp_enabled: bool = Field(default=False, alias="MINIAPP_ENABLED")
+    miniapp_origin: str = Field(default="", alias="MINIAPP_ORIGIN")
     google_client_id: str = Field(default="", alias="GOOGLE_CLIENT_ID")
     google_client_secret: str = Field(default="", alias="GOOGLE_CLIENT_SECRET")
     google_redirect_uri: str = Field(default="", alias="GOOGLE_REDIRECT_URI")
@@ -37,6 +39,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_webhook_configuration(self):
+        if self.miniapp_enabled:
+            origin = urlsplit(self.miniapp_origin)
+            if (not self.booking_runtime_enabled or origin.scheme != "https" or not origin.hostname
+                    or origin.username or origin.password or origin.path or origin.query or origin.fragment):
+                raise ValueError("Mini App requires booking runtime and an HTTPS MINIAPP_ORIGIN without path")
         if self.booking_runtime_enabled and not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.calendar_environment):
             raise ValueError("CALENDAR_ENVIRONMENT is required when BOOKING_RUNTIME_ENABLED=true")
         if self.bot_mode == "webhook":

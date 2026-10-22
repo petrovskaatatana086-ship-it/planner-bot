@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 def create_web_app(
     settings: Settings, session_factory: async_sessionmaker, bot: Bot,
     dispatcher: Dispatcher | None = None,
+    booking_runtime=None,
 ) -> web.Application:
     app = web.Application()
     app["settings"] = settings
@@ -31,6 +32,11 @@ def create_web_app(
     app[TELEGRAM_STATE] = TelegramState()
     app.router.add_get("/google/oauth/callback", google_oauth_callback)
     app.router.add_get("/health", health)
+    if settings.miniapp_enabled:
+        if booking_runtime is None:
+            raise ValueError("Mini App requires the shared booking runtime")
+        from app.miniapp_api import install_miniapp
+        install_miniapp(app, settings, session_factory, booking_runtime)
     if settings.bot_mode == "webhook":
         if dispatcher is None:
             raise ValueError("Webhook mode requires a dispatcher")

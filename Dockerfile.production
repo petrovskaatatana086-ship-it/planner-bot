@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && useradd --uid 10001 --gid calendar --no-create-home calendar
 
 COPY app ./app
+COPY miniapp ./miniapp
 COPY migrations ./migrations
 COPY alembic.ini .
 COPY deploy/adopt_legacy_calendar.py deploy/rehearse_migration.py ./deploy/

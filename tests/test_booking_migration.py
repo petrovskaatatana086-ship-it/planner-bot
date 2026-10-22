@@ -73,6 +73,9 @@ class BookingMigrationTest(unittest.TestCase):
         bot_revision = revision("0011_bot_command_inputs")
         with patch.object(bot_revision, "op", self.ops):
             bot_revision.upgrade()
+        sessions_revision = revision("0012_api_sessions")
+        with patch.object(sessions_revision, "op", self.ops):
+            sessions_revision.upgrade()
         self.connection.commit()
 
     def test_upgrade_preserves_legacy_records_and_enforces_uniqueness(self):
@@ -85,7 +88,7 @@ class BookingMigrationTest(unittest.TestCase):
         self.assertIn("operation_results", sa.inspect(self.connection).get_table_names())
         self.assertIn("outbox", sa.inspect(self.connection).get_table_names())
         # Ensure model metadata and revision produce the same field set.
-        for name in ("users", "meetings", "booking_requests", "owner_profiles", "operation_results", "outbox", "calendar_sync", "reschedule_requests", "bot_command_inputs"):
+        for name in ("users", "meetings", "booking_requests", "owner_profiles", "operation_results", "outbox", "calendar_sync", "reschedule_requests", "bot_command_inputs", "api_sessions"):
             actual = {c["name"] for c in sa.inspect(self.connection).get_columns(name)}
             self.assertEqual(actual, set(Base.metadata.tables[name].columns.keys()))
 
