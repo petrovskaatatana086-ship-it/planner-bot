@@ -259,7 +259,7 @@ class BookingCommands:
         sync = await session.get(CalendarSync, meeting.id)
         if allow_unavailable and sync is None and not meeting.google_event_id and profile.google_status != "active":
             return  # no external event was ever scheduled for this local-only meeting
-        if configured(profile) or sync is not None:
+        if configured(profile) or sync is not None or meeting.google_event_id:
             if self.calendar_environment is None:
                 raise BookingError("CALENDAR_UNAVAILABLE")
             await enqueue_calendar_sync(session, meeting=meeting, profile=profile,

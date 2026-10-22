@@ -51,6 +51,9 @@ async def enqueue_calendar_sync(session, *, meeting, profile, environment, now, 
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", environment):
         raise ValueError("Invalid calendar environment")
     sync = await session.get(CalendarSync, meeting.id)
+    if (sync is None and meeting.google_event_id) or (sync and (sync.state == "adopting"
+            or (sync.applied_version == 0 and meeting.google_event_id == sync.deterministic_event_id))):
+        raise DeliveryError("CALENDAR_ADOPTION_REQUIRED", permanent=True)
     if (not profile.calendar_id or profile.google_status != "active") and not (allow_unavailable and sync):
         raise DeliveryError("CALENDAR_UNAVAILABLE")
     if sync is None:
@@ -144,6 +147,9 @@ class CalendarDeliveries:
                 raise DeliveryError("CALENDAR_STATE_MISSING", permanent=True)
             if sync.environment != self.environment:
                 raise DeliveryError("CALENDAR_ENVIRONMENT_MISMATCH", permanent=True)
+            if sync.state == "adopting" or (sync.applied_version == 0
+                    and meeting.google_event_id == sync.deterministic_event_id):
+                raise DeliveryError("CALENDAR_ADOPTION_REQUIRED", permanent=True)
             profile = await session.scalar(select(OwnerProfile).join(User).where(
                 User.telegram_id == self.owner_telegram_id))
             if profile is None or profile.calendar_id != sync.calendar_id or profile.google_status != "active":
@@ -298,7 +304,7 @@ class CalendarDeliveries:
         except DeliveryError as error:
             async def record_failure(session, code=error.code):
                 sync = await session.get(CalendarSync, delivery.entity_id)
-                if (sync and sync.environment == self.environment
+                if (sync and sync.state != "adopting" and sync.environment == self.environment
                         and sync.desired_version == delivery.entity_version):
                     sync.state = "failed"
                     sync.last_error_code = code

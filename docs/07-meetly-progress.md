@@ -11,7 +11,7 @@
 | 1. ТЗ | Завершён | ТЗ согласовано пользователем; добавлен обязательный отчёт и журнал по каждому этапу |
 | 2. Дизайн и интерактивный макет | Реализован, ожидает визуального согласования | Изолированный макет в `miniapp/`, 16 браузерных проверок PASS |
 | 3. Техническое проектирование | Завершён | Архитектура, статусы, транзакции SQLite, авторизация, API, outbox, миграции, окружения и откат зафиксированы в документах 08/09 |
-| 4. Тестовое окружение и серверная основа | В работе | Booking handlers/runtime и общий preview подключены opt-in, access/binding переведены; legacy adoption, API и live-проверка впереди |
+| 4. Тестовое окружение и серверная основа | В работе | Общие bot writers и legacy adoption реализованы, миграция/restore на локальной копии проверены; изолированный серверный прогон и API впереди |
 | 5. Клиентские сценарии | Не начат | Регистрация, запись, заявки, перенос и отмена |
 | 6. Администратор | Не начат | Календарь и входящие, обработка заявок и переносов |
 | 7. Сквозные проверки и приёмка | Не начат | Бот + mini app, телефон + компьютер |
@@ -213,3 +213,14 @@
 - Целевой прогон: 14 тестов OK за 16.574с, затем добавлены ещё четыре проверки. Полный регресс: 283 теста OK за 199.082с, exit code 0. git diff --check PASS. Лог: meetly-logs/server-foundation/full-google-binding-tests-2026-10-22.txt; границы: google-binding-verification-2026-10-22.md.
 - Проверки используют временные SQLite, независимые engine и fake Google/Telegram. Рабочие .env/БД, VPS и master не затронуты; новых миграций схемы нет. Чужие незакоммиченные логи не включены.
 - Граница: аккаунт сравнивается по userinfo email, перенос событий между binding не реализован, OAuth notification остаётся best-effort. Legacy adoption, миграция на копии/restore и отдельный серверный прогон ещё впереди, затем API/auth. Этап 4 остаётся в работе.
+
+## 22.10.2026 — этап 4: legacy Google adoption и репетиция миграции/restore
+
+- Добавлен CalendarAdoption и maintenance CLI inspect/apply. Проверяются сохранённый event ID, binding, доступ владельца, версии, хеш содержания, полный интервал/название/email, Meet-ссылка и ETag. Чужие метки, серии, all-day, отменённые/удалённые события, общий event ID и существующий Google outbox требуют разбора.
+- До metadata PATCH сохраняется CalendarSync со state=adopting и токеном намерения; сеть выполняется без writer-lock. PATCH добавляет только private meetly-метки с If-Match/sendUpdates=none. Время, участники, описание, конференция и ID сохраняются. При потере ответа повтор сверяет сохранённый adoption_id и завершает без второго PATCH/аудита.
+- Не принятое legacy-событие/adopting intent блокирует изменение встречи с rollback; worker не пересоздаёт missing legacy event. После принятия существующий outbox переносит/отменяет тот же event ID. Новых встреч/уведомлений процедура не создаёт.
+- Добавлен deploy.rehearse_migration: read-only source → Backup API snapshot → upgrade head на копии → восстановление отдельной копии; integrity/FK/head/model, хеши всех исходных столбцов/строк, исходная схема и отсутствие изменений источника. Явное Alembic connection позволяет не читать .env и не обращаться к сети. База без ревизии не размечается автоматически.
+- Репетиция на копии локальной planner.db: 0005 → 0011, migration_ok/legacy_data_preserved/restore_verified/source_unchanged=true, exit code 0. Источник не менялся. Снимки с данными — только в игнорируемом .deploy/meetly-rehearsal-2026-10-22/, безопасный JSON-отчёт сохранён в docs/meetly-logs/server-foundation/local-copy-migration-restore-2026-10-22.json.
+- Новый набор содержит 14 adoption и 8 migration/restore проверок; проверены потеря ответа, конфликты, независимый engine, WAL, частичная ошибка DDL, дубликаты и restore после отказа. Исправлены Windows ACL создания каталога и явное закрытие тестовых SQLite-соединений. Полный финальный регресс: 305 тестов OK за 208.608с, exit code 0, git diff --check PASS.
+- Лог: meetly-logs/server-foundation/full-adoption-rehearsal-tests-2026-10-22.txt; границы: adoption-rehearsal-verification-2026-10-22.md; runbook: docs/11-meetly-maintenance.md. Чужие незакоммиченные логи не включены.
+- Новых миграций схемы нет, head остаётся 0011. Production/master, VPS, рабочие .env и живые Google-события не менялись. Полного этапа 4 ещё нет: далее изолированный серверный прогон с live adoption и проверкой server backup/restore, затем API/auth. Restore старой БД не откатывает метки Google: без сохранённого intent нужен отдельный разбор.

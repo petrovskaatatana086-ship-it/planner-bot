@@ -17,6 +17,8 @@
 | choose_date / choose_time / start_booking | Переведён, opt-in runtime | AvailabilityQueries и общий booking_policy; дни/слоты по полным интервалам, повторная проверка, листание дат по 31 дню |
 | save_google_calendar_selection / OAuth callback | Переведён (22.10) | GoogleBindingCommands, version профиля, проверка state до сети/при записи; существующие встречи и Google-задачи запрещают смену binding |
 | block_client / unblock_client | Переведён (22.10) | ProfileCommands.set_client_access, стабильный ключ сообщения, проверка Telegram ID владельца до replay; регистрационные данные сохраняются |
+| Legacy Google events | Реализован maintenance-путь (22.10) | CalendarAdoption: inspect/план → durable intent → conditional metadata PATCH → synced; live-применения нет |
+| Миграция/restore на копии | Проверены локально (22.10) | deploy.rehearse_migration, настоящая копия planner.db 0005 → 0011, данные/restore/source неизменность PASS |
 | app.main | Подключён, opt-in | Проверка схемы, injection runtime, startup, наблюдение за ошибками, HTTP drain → runtime close → Bot close |
 
 Перед включением новых booking writers нужно перевести их вместе с жизненным циклом worker. Нельзя одновременно оставить старые отправки и активировать новый outbox: это создаст дубли и обойдёт общие гарантии. MEETLY_ENABLED не должен выключать общие команды бота/worker.
@@ -101,8 +103,8 @@ STALE_VERSION; изменения без увеличения версии/ра�
 проверяют её снова. Ошибка обязательного Google выводится безопасно, без подмены
 пустым успешным результатом и без текста внешнего исключения.
 
-Следующая работа: legacy adoption, миграция на копии/restore, изолированный серверный
-прогон; затем API/auth. Полного live-перехода пока нет.
+Следующая работа: live-проверка legacy adoption и миграции/restore в изолированном
+серверном окружении; затем API/auth. Полного live-перехода пока нет.
 
 ## Управляемое Google-подключение (22.10.2026)
 
