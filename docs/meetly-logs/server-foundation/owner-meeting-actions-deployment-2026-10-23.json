@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "image": "meetly-test:eb12e8357ea44383669652a4612dd84104de4e3d",
+  "source_revision": "eb12e8357ea44383669652a4612dd84104de4e3d",
+  "health": {
+    "status": "ok",
+    "transport": "polling"
+  },
+  "production_unchanged": true,
+  "test_business_records_preserved": true,
+  "backup_verified": true,
+  "test_record_counts": {
+    "booking_requests": 3,
+    "meetings": 2
+  },
+  "loopback_port": 8013
+}

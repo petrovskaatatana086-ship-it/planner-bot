@@ -1,0 +1,68 @@
+.venv/Scripts/python.exe : Executing <Handle BaseProactorEventLoop._loop_self_reading(<_OverlappedF...events.py:493>) c
+reated at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\windows_events.py:93> took 0.109 s
+econds
+строка:13 знак:1
++ .venv/Scripts/python.exe -m unittest discover -s tests -q *> .deploy/ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Executing <Hand...k 0.109 seconds:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+Executing <Task pending name='Task-487' coro=<BookingCommandsTest.test_naive_time_and_off_grid_and_weekend_rejected() r
+unning at C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\tests\test_booking_commands.py:237> wait_for=<Future
+ pending cb=[Task.task_wakeup()] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\
+base_events.py:448> cb=[_run_until_complete_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\
+asyncio\base_events.py:181] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runne
+rs.py:100> took 0.156 seconds
+Executing <Task pending name='Task-894' coro=<AsyncSession.close() running at C:\Users\sukhorukov.da\My Projects\Планир
+овщик задач_БОТ\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1025> wait_for=<Future pending cb=[Task.task_
+wakeup()] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:448> cb=
+[shield.<locals>._inner_done_callback() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\t
+asks.py:905] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\tasks.py:420> took 0
+.171 seconds
+Executing <Task pending name='Task-1283' coro=<CalendarAdoptionTest.asyncSetUp() running at C:\Users\sukhorukov.da\My P
+rojects\Планировщик задач_БОТ\tests\test_calendar_adoption.py:58> wait_for=<Future pending cb=[Task.task_wakeup()] crea
+ted at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:448> cb=[_run_until_co
+mplete_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:181] created a
+t C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:100> took 0.281 seconds
+Executing <Task pending name='Task-1607' coro=<CalendarSyncTest.test_reschedule_patch_timeout_reconciles_before_retry()
+ running at C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\tests\test_calendar_sync.py:189> wait_for=<Future
+pending cb=[Task.task_wakeup()] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\b
+ase_events.py:448> cb=[_run_until_complete_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\a
+syncio\base_events.py:181] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runner
+s.py:100> took 0.250 seconds
+Google OAuth callback failed
+Google OAuth callback failed
+Executing <Task pending name='Task-2171' coro=<GoogleBindingTest.asyncSetUp() running at C:\Users\sukhorukov.da\My Proj
+ects\Планировщик задач_БОТ\tests\test_google_binding.py:36> wait_for=<Future pending cb=[Task.task_wakeup()] created at
+ C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:448> cb=[_run_until_complete
+_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py:181] created at C:\U
+sers\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:100> took 0.266 seconds
+Google OAuth callback failed
+C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\app\web.py:28: NotAppKeyWarning: It is recommended to use web.
+AppKey instances for keys.
+https://docs.aiohttp.org/en/stable/web_advanced.html#application-s-config
+  app["settings"] = settings
+C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\app\web.py:29: NotAppKeyWarning: It is recommended to use web.
+AppKey instances for keys.
+https://docs.aiohttp.org/en/stable/web_advanced.html#application-s-config
+  app["session_factory"] = session_factory
+C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\app\web.py:30: NotAppKeyWarning: It is recommended to use web.
+AppKey instances for keys.
+https://docs.aiohttp.org/en/stable/web_advanced.html#application-s-config
+  app["bot"] = bot
+Executing <Task pending name='Task-2724' coro=<ProfileCommandsTest.test_bot_access_retry_does_not_restore_old_block() r
+unning at C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\tests\test_profile_commands.py:301> wait_for=<Future
+ pending cb=[Task.task_wakeup()] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\
+base_events.py:448> cb=[_run_until_complete_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\
+asyncio\base_events.py:181] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runne
+rs.py:100> took 0.297 seconds
+Executing <Task pending name='Task-3156' coro=<RescheduleCommandsTest.test_metadata_only_proposal_does_not_send_google_
+time_update() running at C:\Users\sukhorukov.da\My Projects\Планировщик задач_БОТ\tests\test_reschedule_commands.py:345
+> wait_for=<Future pending cb=[Task.task_wakeup()] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Pyth
+on312\Lib\asyncio\base_events.py:448> cb=[_run_until_complete_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Pyt
+hon\Python312\Lib\asyncio\base_events.py:181] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312
+\Lib\asyncio\runners.py:100> took 0.328 seconds
+----------------------------------------------------------------------
+Ran 324 tests in 241.260s
+
+OK
