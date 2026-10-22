@@ -5,7 +5,9 @@ from aiogram import Bot, Dispatcher
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.config import Settings
-from app.db.repositories import complete_google_oauth, fail_google_oauth
+from app.db.transactions import DatabaseBusy
+from app.services.booking import BookingError
+from app.services.google_binding import GoogleBindingCommands
 from app.integrations.google_oauth import (
     exchange_code_for_tokens,
     fetch_google_account_email,
@@ -49,19 +51,12 @@ async def google_oauth_callback(request: web.Request) -> web.Response:
     session_factory: async_sessionmaker = request.app["session_factory"]
     bot: Bot = request.app["bot"]
 
-    if request.query.get("error"):
-        return web.Response(
-            text=f"Google OAuth error: {request.query['error']}",
-            status=400,
-            content_type="text/plain",
-        )
-
     code = request.query.get("code")
     state = request.query.get("state")
-    if not code or not state:
+    if not state or (not code and not request.query.get("error")):
         return web.Response(text="Missing code or state", status=400, content_type="text/plain")
 
-    parsed_state = parse_oauth_state(state)
+    parsed_state = parse_oauth_state(state) if len(state) <= 255 else None
     if parsed_state is None:
         return web.Response(text="Invalid OAuth state", status=400, content_type="text/plain")
     owner_user_id, _nonce = parsed_state
@@ -70,6 +65,19 @@ async def google_oauth_callback(request: web.Request) -> web.Response:
         return web.Response(text="Google OAuth is not configured", status=500, content_type="text/plain")
     if not settings.oauth_encryption_key:
         return web.Response(text="OAUTH_ENCRYPTION_KEY is not configured", status=500, content_type="text/plain")
+
+    commands = GoogleBindingCommands(session_factory, owner_telegram_id=settings.owner_telegram_id)
+    try:
+        version = await commands.prepare_oauth(actor_id=owner_user_id, oauth_state=state)
+    except (BookingError, DatabaseBusy):
+        return web.Response(text="Invalid OAuth request", status=400, content_type="text/plain")
+
+    if request.query.get("error"):
+        try:
+            await commands.fail_oauth(actor_id=owner_user_id, oauth_state=state)
+        except DatabaseBusy:
+            return web.Response(text="Try again later", status=503, content_type="text/plain")
+        return web.Response(text="Google authorization was not completed", status=400, content_type="text/plain")
 
     try:
         token_response = await exchange_code_for_tokens(settings, code)
@@ -85,33 +93,27 @@ async def google_oauth_callback(request: web.Request) -> web.Response:
                 settings.oauth_encryption_key,
             )
 
-        async with session_factory() as session:
-            await complete_google_oauth(
-                session,
-                owner_user_id=owner_user_id,
-                oauth_state=state,
-                encrypted_access_token=encrypted_access_token,
-                encrypted_refresh_token=encrypted_refresh_token,
-                expires_at=token_response.expires_at,
-                google_email=google_email,
-            )
-            await session.commit()
+        await commands.complete_oauth(
+            actor_id=owner_user_id, oauth_state=state, expected_version=version,
+            encrypted_access_token=encrypted_access_token,
+            encrypted_refresh_token=encrypted_refresh_token,
+            expires_at=token_response.expires_at, google_email=google_email)
 
         await _notify_owner(bot, settings, f"Google Calendar подключен: {google_email}")
         return web.Response(
             text="Google Calendar connected. You can return to Telegram.",
             content_type="text/plain",
         )
-    except Exception as exc:
-        logger.exception("Google OAuth callback failed")
-        async with session_factory() as session:
-            await fail_google_oauth(
-                session,
-                owner_user_id=owner_user_id,
-                error=str(exc),
-            )
-            await session.commit()
-        await _notify_owner(bot, settings, f"Ошибка подключения Google Calendar: {exc}")
+    except Exception:
+        # Provider errors can contain secrets. Persist and log only fixed codes.
+        logger.warning("Google OAuth callback failed")
+        try:
+            failed = await commands.fail_oauth(actor_id=owner_user_id, oauth_state=state)
+        except Exception:
+            failed = False
+            logger.warning("Could not finalize failed Google OAuth request")
+        if failed:
+            await _notify_owner(bot, settings, "Не удалось подключить Google Calendar. Повторите подключение.")
         return web.Response(
             text="Google Calendar connection failed. Return to Telegram and try again.",
             status=400,

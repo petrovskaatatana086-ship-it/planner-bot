@@ -1,6 +1,6 @@
 ﻿# Переход обработчиков бота на общий слой
 
-Состояние 21.10.2026. Это карта незавершённого подключения, не отчёт о полном переходе production.
+Состояние 22.10.2026. Это карта незавершённого подключения, не отчёт о полном переходе production.
 
 | Путь app/bot/handlers.py | Состояние | Общая операция / оставшаяся работа |
 | --- | --- | --- |
@@ -15,7 +15,7 @@
 | request_reschedule_by_client | Переведён, opt-in runtime | request_reschedule; срок нового времени и длительность проверяет общий сервис |
 | approve_client_reschedule / reject_client_reschedule | Переведён, opt-in runtime | approve/reject_reschedule с сохранёнными ID предложения и Meeting.version |
 | choose_date / choose_time / start_booking | Переведён, opt-in runtime | AvailabilityQueries и общий booking_policy; дни/слоты по полным интервалам, повторная проверка, листание дат по 31 дню |
-| save_google_calendar_selection / OAuth callback | Старый путь | Контролируемый binding change, version профиля, согласование уже созданных CalendarSync |
+| save_google_calendar_selection / OAuth callback | Переведён (22.10) | GoogleBindingCommands, version профиля, проверка state до сети/при записи; существующие встречи и Google-задачи запрещают смену binding |
 | block_client / unblock_client | Переведён (22.10) | ProfileCommands.set_client_access, стабильный ключ сообщения, проверка Telegram ID владельца до replay; регистрационные данные сохраняются |
 | app.main | Подключён, opt-in | Проверка схемы, injection runtime, startup, наблюдение за ошибками, HTTP drain → runtime close → Bot close |
 
@@ -101,5 +101,43 @@ STALE_VERSION; изменения без увеличения версии/ра�
 проверяют её снова. Ошибка обязательного Google выводится безопасно, без подмены
 пустым успешным результатом и без текста внешнего исключения.
 
-Следующая работа: binding/access writers, legacy adoption, изолированный серверный
+Следующая работа: legacy adoption, миграция на копии/restore, изолированный серверный
 прогон; затем API/auth. Полного live-перехода пока нет.
+
+## Управляемое Google-подключение (22.10.2026)
+
+Выбор календаря фиксирует OwnerProfile.version до list_calendars и сохраняет
+его в FSM. select_calendar проверяет актуальность под SQLite writer-lock,
+увеличивает version при изменении ID и сохраняет результат/аудит атомарно.
+Повтор ключа возвращает исходный результат, не возвращая старый календарь.
+Старые формы без версии требуют заново открыть выбор календаря.
+Список использует GoogleTokens: refresh выполняется без открытой DB-сессии.
+
+Политика перехода консервативная: новый calendar ID или другой Google email
+запрещены при любой CalendarSync, любой Google outbox, legacy google_event_id
+или неотменённой встрече. Историческая sync тоже удерживает binding.
+Очередь и event IDs не переписываются. Повторный выбор того же календаря
+и reconnect того же email разрешены. Перенос существующих событий между
+календарями/аккаунтами — отдельная, пока не реализованная процедура.
+Это не автоматическая миграция и не legacy adoption.
+
+begin_oauth сохраняет state без отключения активных токенов. Callback проверяет
+активного владельца по настроенному Telegram ID и точное совпадение state
+до exchange/userinfo. Сессия закрывается до сети. Перед записью токенов
+те же проверки и версия профиля повторяются в короткой writer-транзакции.
+Новый flow заменяет предыдущий state; старый callback не может завершить
+или испортить новый. Повтор уже завершённого callback отклоняется до сети.
+
+Успешный reconnect увеличивает version. Если разрешена смена аккаунта,
+calendar_id сбрасывается, старый refresh token не наследуется. Для того же
+email допускается сохранение прежнего refresh token; при неизвестном прежнем
+email и существующих встречах смена требует отдельного разбора.
+Сравнение аккаунтов основано на email userinfo, отдельный Google subject
+в текущей схеме не хранится.
+
+Ошибка или отказ OAuth очищает только совпадающий pending state, сохраняет
+активное подключение и записывает фиксированный код. Provider exception,
+code/state и токены не попадают в аудит/результаты/тексты ошибок. OAuth-секреты
+сохраняются только в OAuthCredential. Новых миграций схемы нет.
+Уведомление о завершении OAuth остаётся best-effort Telegram, отдельно от
+durable booking outbox. Live Google и рабочий сервер этим изменением не проверены.

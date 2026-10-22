@@ -30,8 +30,6 @@ from app.db.repositories import (
     list_client_requests,
     list_clients,
     list_pending_requests,
-    mark_google_oauth_pending,
-    set_owner_google_calendar,
 )
 from app.domain.booking import (
     MOSCOW_TZ,
@@ -50,9 +48,8 @@ from app.services.booking import BookingError
 from app.db.transactions import DatabaseBusy
 from app.integrations.google_calendar import list_google_calendars
 from app.integrations.google_oauth import build_google_oauth_link, google_oauth_is_configured
-from app.services.google import (
-    get_valid_google_access_token,
-)
+from app.services.google_binding import GoogleBindingCommands
+from app.services.google_tokens import GoogleTokens
 
 router = Router()
 
@@ -77,6 +74,7 @@ def _command_error(error):
         "VALIDATION_FAILED": "Проверьте введённые данные и повторите действие.",
         "SLOT_UNAVAILABLE": "Это время уже занято. Выберите другой слот.",
         "CALENDAR_UNAVAILABLE": "Не удалось проверить Google Calendar. Повторите позже.",
+        "CALENDAR_BINDING_IN_USE": "Календарь связан с существующими встречами. Для смены подключения сначала нужен перенос событий специалистом.",
         "RESOURCE_NOT_FOUND": "Заявка или встреча не найдена.",
         "BOOKING_DISABLED": "Запись временно выключена специалистом.",
         "NOTICE_REQUIRED": "До встречи осталось слишком мало времени для этого действия.",
@@ -772,18 +770,13 @@ async def google_calendar(message: Message, settings: Settings, session_factory)
         return
 
     link = build_google_oauth_link(settings, owner.id)
-    async with session_factory() as session:
-        profile = await get_owner_profile(session, owner.id)
-        credential = None
-        if profile is not None:
-            credential = await mark_google_oauth_pending(
-                session,
-                owner,
-                oauth_state=link.state,
-            )
-        await session.commit()
-
-    status = credential.status if credential is not None else "pending"
+    try:
+        await GoogleBindingCommands(session_factory, owner_telegram_id=settings.owner_telegram_id).begin_oauth(
+            actor_id=owner.id, oauth_state=link.state)
+    except (BookingError, DatabaseBusy) as error:
+        await message.answer(_command_error(error))
+        return
+    status = "pending"
     await message.answer(
         "Подключение Google Calendar.\n\n"
         f"Текущий статус: {status}\n"
@@ -802,16 +795,12 @@ async def choose_google_calendar(message: Message, state: FSMContext, settings: 
         return
 
     try:
-        async with session_factory() as session:
-            access_token = await get_valid_google_access_token(
-                session,
-                settings=settings,
-                owner_user_id=owner.id,
-            )
-            await session.commit()
+        version = await GoogleBindingCommands(session_factory,
+            owner_telegram_id=settings.owner_telegram_id).selection_version(actor_id=owner.id)
+        access_token = await GoogleTokens(session_factory, settings=settings, owner_user_id=owner.id)()
         calendars = await list_google_calendars(access_token)
-    except Exception as exc:
-        await message.answer(f"Не удалось получить календари Google: {exc}")
+    except Exception:
+        await message.answer("Не удалось получить календари Google. Повторите позже.")
         return
 
     if not calendars:
@@ -820,6 +809,7 @@ async def choose_google_calendar(message: Message, state: FSMContext, settings: 
 
     await state.set_state(GoogleCalendarSelection.waiting_for_calendar_number)
     await state.update_data(
+        google_binding_version=version,
         google_calendars=[
             {
                 "id": calendar.id,
@@ -867,13 +857,13 @@ async def save_google_calendar_selection(
         return
 
     selected = calendars[selected_number - 1]
-    async with session_factory() as session:
-        await set_owner_google_calendar(
-            session,
-            owner_user_id=owner.id,
-            calendar_id=selected["id"],
-        )
-        await session.commit()
+    try:
+        await GoogleBindingCommands(session_factory, owner_telegram_id=settings.owner_telegram_id).select_calendar(
+            actor_id=owner.id, command_id=_message_command_key(message, settings, "google_calendar"),
+            calendar_id=selected["id"], expected_version=data.get("google_binding_version"))
+    except (BookingError, DatabaseBusy) as error:
+        await message.answer(_command_error(error))
+        return
 
     await state.clear()
     await message.answer(
