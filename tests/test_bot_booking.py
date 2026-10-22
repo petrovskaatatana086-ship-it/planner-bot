@@ -176,6 +176,23 @@ class BotBookingTest(unittest.IsolatedAsyncioTestCase):
         async with self.sessions() as session:
             self.assertEqual((await session.get(Meeting, meeting.id)).version, 1)
 
+    async def test_owner_move_outside_schedule_explains_error_and_allows_retry(self):
+        meeting = await self.meeting()
+        await handlers.meeting_move_callback(self.meeting_callback(f"owner_meeting_move:{meeting.id}:1", owner=True),
+            self.state, self.settings, self.sessions, self.runtime)
+        message = self.message("01.11.2026 13:20", owner=True)
+        await handlers.submit_meeting_move(message, self.state, self.settings, self.sessions, self.runtime)
+        self.assertIn("не входит в расписание", message.answer.call_args.args[0])
+        self.assertIsNotNone(await self.state.get_state())
+        async with self.sessions() as session:
+            current = await session.get(Meeting, meeting.id)
+            self.assertEqual((current.start_at, current.version), (meeting.start_at, 1))
+        await handlers.submit_meeting_move(self.message("27.10.2026 11:00", owner=True, identifier=11),
+            self.state, self.settings, self.sessions, self.runtime)
+        self.assertIsNone(await self.state.get_state())
+        async with self.sessions() as session:
+            self.assertEqual((await session.get(Meeting, meeting.id)).status, "rescheduled")
+
     async def asyncSetUp(self):
         self.path = Path.cwd()/f".test_bot_booking_{uuid.uuid4().hex}.db"
         self.settings = Settings(_env_file=None, BOT_TOKEN="123:abc", OWNER_TELEGRAM_ID=777,
