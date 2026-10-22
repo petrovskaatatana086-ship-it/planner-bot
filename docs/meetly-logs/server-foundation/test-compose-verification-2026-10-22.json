@@ -1,0 +1,1 @@
+{"compose_valid": true, "checks": {"project_isolated": true, "image_pinned": true, "polling_only": true, "runtime_enabled": true, "test_environment": true, "google_disabled": true, "smtp_disabled": true, "loopback_test_port": true, "private_data": true, "network_isolated": true, "read_only_root": true}}

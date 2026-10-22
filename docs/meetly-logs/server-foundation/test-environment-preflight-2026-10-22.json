@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-22",
+  "read_only_server_preflight": true,
+  "test_service_present": false,
+  "test_token_present": false,
+  "production_container_healthy": true,
+  "available_ram_mib": 673,
+  "free_disk_gb": 3.0,
+  "proposed_host_port": 8013,
+  "proposed_port_listening": false,
+  "production_host_port": 8012,
+  "containers_started": false,
+  "proxy_changed": false
+}

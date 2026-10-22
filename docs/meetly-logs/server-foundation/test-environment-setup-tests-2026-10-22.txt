@@ -1,0 +1,14 @@
+test_ambient_production_and_local_google_smtp_are_not_inherited (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_ambient_production_and_local_google_smtp_are_not_inherited) ... ok
+test_existing_output_is_not_modified_and_source_files_stay_unchanged (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_existing_output_is_not_modified_and_source_files_stay_unchanged) ... ok
+test_invalid_owner_and_conflicting_ports_are_rejected (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_invalid_owner_and_conflicting_ports_are_rejected) ... ok
+test_missing_production_identity_reference_cannot_claim_isolation (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_missing_production_identity_reference_cannot_claim_isolation) ... ok
+test_output_cannot_escape_private_directory (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_output_cannot_escape_private_directory) ... ok
+test_pinned_image_required_and_foreign_image_is_never_selected (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_pinned_image_required_and_foreign_image_is_never_selected) ... ok
+test_placeholder_or_missing_test_token_cannot_generate_files (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_placeholder_or_missing_test_token_cannot_generate_files) ... ok
+test_same_production_bot_id_is_rejected_even_after_token_rotation (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_same_production_bot_id_is_rejected_even_after_token_rotation) ... ok
+test_separate_identity_fresh_data_and_secrets_are_not_in_report (tests.test_meetly_test_setup.MeetlyTestSetupTest.test_separate_identity_fresh_data_and_secrets_are_not_in_report) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.096s
+
+OK

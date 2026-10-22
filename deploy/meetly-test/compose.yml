@@ -1,0 +1,57 @@
+name: meetly-test
+
+services:
+  bot:
+    image: ${MEETLY_TEST_IMAGE:?Use a pinned meetly-test image}
+    env_file:
+      - path: app.env
+        format: raw
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/planner.db
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: "8000"
+      BOT_MODE: polling
+      TELEGRAM_WEBHOOK_URL: ""
+      TELEGRAM_WEBHOOK_SECRET: ""
+      BOOKING_RUNTIME_ENABLED: "true"
+      CALENDAR_ENVIRONMENT: meetly-test
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
+      GOOGLE_REDIRECT_URI: ""
+      OAUTH_ENCRYPTION_KEY: ""
+      SMTP_HOST: ""
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_FROM_EMAIL: ""
+    ports:
+      - "127.0.0.1:${MEETLY_TEST_PORT:?Set a free test port}:8000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    mem_reservation: 96m
+    memswap_limit: 384m
+    cpus: 0.50
+    pids_limit: 64
+    stop_grace_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  default:
+    name: meetly-test-network

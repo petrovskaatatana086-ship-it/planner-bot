@@ -19,6 +19,7 @@
 | block_client / unblock_client | Переведён (22.10) | ProfileCommands.set_client_access, стабильный ключ сообщения, проверка Telegram ID владельца до replay; регистрационные данные сохраняются |
 | Legacy Google events | Реализован maintenance-путь (22.10) | CalendarAdoption: inspect/план → durable intent → conditional metadata PATCH → synced; live-применения нет |
 | Миграция/restore на копии | Проверены локально (22.10) | deploy.rehearse_migration, настоящая копия planner.db 0005 → 0011, данные/restore/source неизменность PASS |
+| Изолированный серверный прогон | Подготовлена конфигурация (22.10) | deploy/meetly-test, подготовка из .env.local с проверкой bot ID; запуск ожидает отдельного тестового токена |
 | app.main | Подключён, opt-in | Проверка схемы, injection runtime, startup, наблюдение за ошибками, HTTP drain → runtime close → Bot close |
 
 Перед включением новых booking writers нужно перевести их вместе с жизненным циклом worker. Нельзя одновременно оставить старые отправки и активировать новый outbox: это создаст дубли и обойдёт общие гарантии. MEETLY_ENABLED не должен выключать общие команды бота/worker.

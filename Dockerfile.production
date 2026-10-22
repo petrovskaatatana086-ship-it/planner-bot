@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY app ./app
 COPY migrations ./migrations
 COPY alembic.ini .
+COPY deploy/adopt_legacy_calendar.py deploy/rehearse_migration.py ./deploy/
 
 USER 10001:10001
 CMD ["sh", "-c", "python -m alembic upgrade head && exec python -m app.main"]
