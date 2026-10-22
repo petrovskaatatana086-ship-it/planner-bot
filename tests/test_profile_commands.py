@@ -241,3 +241,66 @@ class ProfileCommandsTest(unittest.IsolatedAsyncioTestCase):
         state = AsyncMock()
         await handlers.accept_consent(self.message(), state)
         state.update_data.assert_awaited_once_with(consent=True, consent_version=CONSENT_VERSION)
+
+    def access(self, *, index=0, key="block", **overrides):
+        data = dict(actor_id=self.owner.id, command_id=key, client_id=self.client.id, blocked=True)
+        data.update(overrides)
+        return self.commands[index].set_client_access(**data)
+
+    async def test_access_replay_after_opposite_decision_preserves_profile(self):
+        await self.register()
+        before = await self.user()
+        first = await self.access()
+        await self.access(key="unblock", blocked=False)
+        self.assertEqual(await self.access(index=1), first)
+        after = await self.user()
+        self.assertEqual(after.status, "active")
+        for field in ("full_name", "email", "consent_at", "consent_version"):
+            self.assertEqual(getattr(before, field), getattr(after, field))
+        async with self.sessions[0]() as session:
+            self.assertEqual(await session.scalar(select(func.count()).select_from(AuditLog).where(
+                AuditLog.action.like("client.status.%"))), 2)
+
+    async def test_concurrent_access_same_key_has_one_audit(self):
+        first, second = await asyncio.gather(self.access(), self.access(index=1))
+        self.assertEqual(first, second)
+        self.assertEqual((await self.user()).status, "blocked")
+        async with self.sessions[0]() as session:
+            self.assertEqual(await session.scalar(select(func.count()).select_from(OperationResult)), 1)
+
+    async def test_access_authorization_uses_telegram_identity_before_replay(self):
+        async with self.sessions[0]() as session:
+            (await session.get(User, self.client.id)).role = "owner"
+            await session.commit()
+        with self.assertRaises(BookingError) as error:
+            await self.access(actor_id=self.client.id)
+        self.assertEqual(error.exception.code, "FORBIDDEN")
+        await self.access()
+        async with self.sessions[0]() as session:
+            (await session.get(User, self.owner.id)).status = "blocked"
+            await session.commit()
+        with self.assertRaises(BookingError) as error:
+            await self.access()
+        self.assertEqual(error.exception.code, "ACCOUNT_BLOCKED")
+
+    async def test_access_rejects_owner_missing_invalid_and_reused_key(self):
+        for overrides, code in ((dict(client_id=self.owner.id), "RESOURCE_NOT_FOUND"),
+                                (dict(client_id=99999), "RESOURCE_NOT_FOUND"),
+                                (dict(blocked=1), "VALIDATION_FAILED"),
+                                (dict(client_id=True), "VALIDATION_FAILED")):
+            with self.subTest(overrides=overrides), self.assertRaises(BookingError) as error:
+                await self.access(**overrides)
+            self.assertEqual(error.exception.code, code)
+        await self.access()
+        with self.assertRaises(BookingError) as error:
+            await self.access(blocked=False)
+        self.assertEqual(error.exception.code, "IDEMPOTENCY_KEY_REUSED")
+
+    async def test_bot_access_retry_does_not_restore_old_block(self):
+        message = self.message(owner=True, text=f"Заблокировать клиента {self.client.id}")
+        await handlers.block_client(message, self.settings, self.sessions[0])
+        self.assertEqual((await self.user()).status, "blocked")
+        unblock = self.message(owner=True, text=f"Разблокировать клиента {self.client.id}", identifier=11)
+        await handlers.unblock_client(unblock, self.settings, self.sessions[1])
+        await handlers.block_client(message, self.settings, self.sessions[1])
+        self.assertEqual((await self.user()).status, "active")

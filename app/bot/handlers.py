@@ -31,7 +31,6 @@ from app.db.repositories import (
     list_clients,
     list_pending_requests,
     mark_google_oauth_pending,
-    set_client_status,
     set_owner_google_calendar,
 )
 from app.domain.booking import (
@@ -1068,58 +1067,32 @@ async def clients_menu(message: Message, settings: Settings, session_factory):
     )
 
 
+async def _set_client_access(message, settings, session_factory, *, blocked):
+    owner = await _load_user(message, settings, session_factory)
+    if not owner:
+        return
+    client_id = int((message.text or "").split()[-1])
+    try:
+        result = await _profile_commands(settings, session_factory).set_client_access(
+            actor_id=owner.id,
+            command_id=_message_command_key(message, settings, "client_access"),
+            client_id=client_id, blocked=blocked)
+    except (BookingError, DatabaseBusy) as error:
+        await message.answer("Клиент не найден." if getattr(error, "code", None) == "RESOURCE_NOT_FOUND"
+                             else _command_error(error))
+        return
+    label = "заблокирован" if result["status"] == "blocked" else "разблокирован"
+    await message.answer(f"Клиент #{client_id} {label}.")
+
+
 @router.message(F.text.regexp(r"^Заблокировать клиента\s+\d+$"))
 async def block_client(message: Message, settings: Settings, session_factory):
-    owner = await _load_user(message, settings, session_factory)
-    if not owner or owner.role != OWNER_ROLE:
-        await message.answer("У вас нет доступа к управлению системой")
-        return
-
-    client_id = int((message.text or "").split()[-1])
-    async with session_factory() as session:
-        client = await session.get(User, client_id)
-        if client is None or client.role == OWNER_ROLE:
-            await message.answer("Клиент не найден.")
-            return
-        if client.status == "blocked":
-            await message.answer(f"Клиент #{client.id} уже заблокирован.")
-            return
-        await set_client_status(
-            session,
-            client=client,
-            status="blocked",
-            actor_user_id=owner.id,
-        )
-        await session.commit()
-
-    await message.answer(f"Клиент #{client_id} заблокирован.")
+    await _set_client_access(message, settings, session_factory, blocked=True)
 
 
 @router.message(F.text.regexp(r"^Разблокировать клиента\s+\d+$"))
 async def unblock_client(message: Message, settings: Settings, session_factory):
-    owner = await _load_user(message, settings, session_factory)
-    if not owner or owner.role != OWNER_ROLE:
-        await message.answer("У вас нет доступа к управлению системой")
-        return
-
-    client_id = int((message.text or "").split()[-1])
-    async with session_factory() as session:
-        client = await session.get(User, client_id)
-        if client is None or client.role == OWNER_ROLE:
-            await message.answer("Клиент не найден.")
-            return
-        if client.status == "active":
-            await message.answer(f"Клиент #{client.id} уже активен.")
-            return
-        await set_client_status(
-            session,
-            client=client,
-            status="active",
-            actor_user_id=owner.id,
-        )
-        await session.commit()
-
-    await message.answer(f"Клиент #{client_id} разблокирован.")
+    await _set_client_access(message, settings, session_factory, blocked=False)
 
 
 @router.message(

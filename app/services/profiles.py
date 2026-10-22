@@ -108,6 +108,23 @@ class ProfileCommands:
             raise BookingError("VERSION_REQUIRED")
         return await self._settings(actor_id, command_id, dict(changes), expected_version)
 
+    async def set_client_access(self, *, actor_id, command_id, client_id, blocked):
+        """Absolute access command; replay never reapplies an older access decision."""
+        if type(client_id) is not int or client_id <= 0 or type(blocked) is not bool:
+            raise BookingError("VALIDATION_FAILED")
+        status = "blocked" if blocked else "active"
+        async def update(session, actor, now):
+            client = await session.get(User, client_id)
+            if client is None or client.telegram_id == self.owner_telegram_id:
+                raise BookingError("RESOURCE_NOT_FOUND")
+            if client.status not in {"active", "blocked"}:
+                raise BookingError("INVALID_STATE")
+            changed = client.status != status
+            client.status = status
+            return dict(id=client.id, status=status, changed=changed), client.id, "user"
+        return await self._run(actor_id, command_id, f"client.status.{status}",
+            dict(client_id=client_id, blocked=blocked), update, owner=True)
+
     async def apply_settings_message(self, *, actor_id, command_id, changes):
         """Absolute owner text command: apply to latest state inside the writer lock.
 

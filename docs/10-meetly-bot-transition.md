@@ -16,7 +16,7 @@
 | approve_client_reschedule / reject_client_reschedule | Переведён, opt-in runtime | approve/reject_reschedule с сохранёнными ID предложения и Meeting.version |
 | choose_date / choose_time / start_booking | Переведён, opt-in runtime | AvailabilityQueries и общий booking_policy; дни/слоты по полным интервалам, повторная проверка, листание дат по 31 дню |
 | save_google_calendar_selection / OAuth callback | Старый путь | Контролируемый binding change, version профиля, согласование уже созданных CalendarSync |
-| block_client / unblock_client | Старый путь | Общая операция доступа и стабильный ключ; не менять данные регистрации |
+| block_client / unblock_client | Переведён (22.10) | ProfileCommands.set_client_access, стабильный ключ сообщения, проверка Telegram ID владельца до replay; регистрационные данные сохраняются |
 | app.main | Подключён, opt-in | Проверка схемы, injection runtime, startup, наблюдение за ошибками, HTTP drain → runtime close → Bot close |
 
 Перед включением новых booking writers нужно перевести их вместе с жизненным циклом worker. Нельзя одновременно оставить старые отправки и активировать новый outbox: это создаст дубли и обойдёт общие гарантии. MEETLY_ENABLED не должен выключать общие команды бота/worker.
