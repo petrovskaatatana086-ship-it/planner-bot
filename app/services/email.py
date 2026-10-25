@@ -2,7 +2,7 @@ import asyncio
 import logging
 import smtplib
 from email.message import EmailMessage
-from email.utils import formataddr
+from email.utils import formataddr, getaddresses
 
 from app.config import Settings
 from app.db.models import BookingRequest, Meeting, User
@@ -161,6 +161,16 @@ async def _send_email(
 
 
 def _deliver_email(settings: Settings, message: EmailMessage) -> None:
+    admin_copy = getattr(settings, "smtp_admin_copy_email", "").strip()
+    recipients = {address.casefold() for _, address in getaddresses(
+        message.get_all("To", []) + message.get_all("Cc", []) + message.get_all("Bcc", [])
+    )}
+    if admin_copy and admin_copy.casefold() not in recipients:
+        # SMTP sends Bcc recipients in the envelope and removes the header on the wire.
+        if message.get_all("Bcc"):
+            message.replace_header("Bcc", message["Bcc"] + ", " + admin_copy)
+        else:
+            message["Bcc"] = admin_copy
     if settings.smtp_use_ssl:
         server: smtplib.SMTP | smtplib.SMTP_SSL = smtplib.SMTP_SSL(
             settings.smtp_host,

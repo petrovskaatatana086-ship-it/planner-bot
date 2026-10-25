@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     smtp_username: str = Field(default="", alias="SMTP_USERNAME")
     smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
     smtp_from_email: str = Field(default="", alias="SMTP_FROM_EMAIL")
+    smtp_admin_copy_email: str = Field(default="", alias="SMTP_ADMIN_COPY_EMAIL")
     smtp_from_name: str = Field(default="Планировщик встреч", alias="SMTP_FROM_NAME")
     smtp_use_tls: bool = Field(default=True, alias="SMTP_USE_TLS")
     smtp_use_ssl: bool = Field(default=False, alias="SMTP_USE_SSL")
