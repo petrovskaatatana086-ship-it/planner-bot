@@ -1,1 +1,10 @@
 [hidden]{display:none!important}.app-shell{padding-top:env(safe-area-inset-top)}.inline-error{color:#8b3f2e;white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere}.live-status{font-size:12px;color:var(--muted)}.day:disabled{opacity:.35}.day.available{background:var(--sage)}.day.selected{background:var(--green);color:var(--paper)}.panel input[type=checkbox]{width:22px;height:22px}.consent-text{white-space:pre-wrap;line-height:1.7}.safe-text{overflow-wrap:anywhere;white-space:pre-wrap}button:disabled{opacity:.55}.live-actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}.live-actions button{min-height:44px}.slots{margin-bottom:20px}.calendar-controls{display:flex;align-items:center;gap:12px}.calendar-controls button{width:44px;height:44px}.meeting-row{cursor:pointer}.meeting-row:focus-visible{outline:3px solid var(--green)}.sidebar .demo-label{letter-spacing:0}.loading{padding:24px}.status.rescheduled{background:#e5ecdf;color:#385c39}@media(max-width:650px){.sidebar{grid-template-columns:1fr auto}.sidebar .demo-label{grid-column:2;grid-row:1;font-size:10px;text-align:right}.hero{min-height:190px}.nav-button{min-width:0}main{padding-bottom:calc(100px + env(safe-area-inset-bottom))}}
+/* Keep iOS form focus and orientation changes from changing the text scale. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,a,[role=button]{touch-action:manipulation}
+@media(max-width:1050px),(pointer:coarse){
+  .app-shell input,.app-shell textarea,.app-shell select,
+  dialog input,dialog textarea,dialog select{font-size:16px;line-height:1.4}
+  .app-shell{min-height:100svh}
+  dialog{max-height:90dvh}
+}
