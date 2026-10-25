@@ -67,13 +67,15 @@ class MiniAppQueries:
         return dict(id=row.id, full_name=row.full_name, email=row.email) if row else None
 
     async def _request(self, session, row, owner):
+        past = utc(row.start_at) <= utc(self.clock())
         data = {k: getattr(row, k) for k in ("id", "version", "title", "comment", "status", "rejection_reason")}
         data.update({k: stamp(getattr(row, k)) for k in ("start_at", "end_at", "reserved_until", "created_at")})
         meeting = await session.scalar(select(Meeting).where(Meeting.booking_request_id == row.id))
         data.update(timezone="Europe/Moscow", meeting_id=meeting.id if meeting else None,
             meeting=await self._meeting(session, meeting, owner), reservation_active=bool(row.status == "pending"
                 and row.reserved_until and utc(row.reserved_until) > utc(self.clock())),
-            allowed_actions=["approve", "reject"] if owner and row.status == "pending" else [])
+            approval_unavailable_reason="REQUEST_IN_PAST" if row.status == "pending" and past else None,
+            allowed_actions=(["reject"] if past else ["approve", "reject"]) if owner and row.status == "pending" else [])
         if owner:
             data["client"] = await self.client(session, row.client_id)
         return data

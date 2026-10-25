@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 from aiohttp.test_utils import TestClient, TestServer
 from sqlalchemy import select, func
 
-from app.db.models import ApiSession, Meeting, User
+from app.db.models import ApiSession, BookingRequest, Meeting, User
 from app.services.booking import BookingError
 from app.services.miniapp_auth import validate_init_data
 from app.web import create_web_app
@@ -45,6 +45,26 @@ class MiniAppApiTest(unittest.IsolatedAsyncioTestCase):
         response = await self.client_http.post(self.url+"session", headers={"Authorization":"tma "+signed(self.settings,self.now,identifier=identifier)})
         self.assertEqual(response.status,200,await response.text())
         return (await response.json())["data"]["token"]
+
+    async def test_past_pending_request_explains_why_approval_is_unavailable(self):
+        created = await self.create()
+        path = f"admin/requests/{created['id']}"
+        response = await self.call("GET", path, owner=True)
+        self.assertIn("approve", (await response.json())["data"]["allowed_actions"])
+        async with self.sessions() as session:
+            row = await session.get(BookingRequest, created["id"])
+            row.start_at = self.now
+            row.end_at = self.now + timedelta(hours=1)
+            await session.commit()
+        response = await self.call("GET", path, owner=True)
+        data = (await response.json())["data"]
+        self.assertEqual(data["allowed_actions"], ["reject"])
+        self.assertEqual(data["approval_unavailable_reason"], "REQUEST_IN_PAST")
+        response = await self.call("POST", path+"/approve", owner=True, body={},
+            version=1, key=str(uuid.uuid4()))
+        self.assertEqual(response.status, 409)
+        self.assertIn("время встречи прошло", (await response.json())["error"]["message"])
+        self.assertEqual(await self.count(Meeting), 0)
 
     async def call(self, method, path, *, owner=False, token=None, body=None, version=None, key=None, headers=None):
         hdr = {"Authorization":"Bearer "+(token or (self.owner_token if owner else self.client_token))}
