@@ -66,6 +66,19 @@ class MiniAppApiTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("время встречи прошло", (await response.json())["error"]["message"])
         self.assertEqual(await self.count(Meeting), 0)
 
+    async def test_closed_working_day_blocks_direct_booking_and_settings_roundtrip(self):
+        response = await self.call("GET", "admin/settings", owner=True)
+        settings = (await response.json())["data"]
+        response = await self.call("PATCH", "admin/settings", owner=True,
+            body={"working_days": []}, version=settings["version"], key=str(uuid.uuid4()))
+        self.assertEqual(response.status, 200, await response.text())
+        response = await self.call("GET", "admin/settings", owner=True)
+        self.assertEqual((await response.json())["data"]["working_days"], [])
+        with self.assertRaises(BookingError) as error:
+            await self.adapter.execute("create_request", actor_id=self.client.id,
+                command_id=uuid.uuid4().hex, start_at=self.start, title="Closed day", settings_version=2)
+        self.assertEqual(error.exception.code, "OUTSIDE_SCHEDULE")
+
     async def call(self, method, path, *, owner=False, token=None, body=None, version=None, key=None, headers=None):
         hdr = {"Authorization":"Bearer "+(token or (self.owner_token if owner else self.client_token))}
         if version is not None: hdr["If-Match"]=f'"{version}"'

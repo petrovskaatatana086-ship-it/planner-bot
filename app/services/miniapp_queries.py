@@ -3,7 +3,7 @@ from datetime import datetime, time, timedelta
 
 from sqlalchemy import func, select, text, literal, or_, and_
 
-from app.db.models import BookingRequest, CalendarSync, Meeting, OwnerProfile, RescheduleRequest, User
+from app.db.models import BookingRequest, CalendarSync, Meeting, OwnerProfile, RescheduleRequest, ScheduleRule, User
 from app.domain.booking import MOSCOW_TZ
 from app.domain.intervals import utc
 from app.services.booking import ACTIVE, BookingError
@@ -97,7 +97,9 @@ class MiniAppQueries:
                 profile = await session.scalar(select(OwnerProfile).join(User).where(User.telegram_id == self.settings.owner_telegram_id))
                 if profile is None:
                     raise BookingError("BOOKING_UNAVAILABLE")
-                result = settings_data(profile)
+                rules = (await session.scalars(select(ScheduleRule).where(
+                    ScheduleRule.owner_id == profile.user_id))).all()
+                result = settings_data(profile, rules)
                 if not owner:
                     result.pop("google_email", None)
                     result.pop("google_status", None)

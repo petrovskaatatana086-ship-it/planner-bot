@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from app.db.models import AuditLog, OperationResult, OwnerProfile, User
+from app.db.models import AuditLog, OperationResult, OwnerProfile, ScheduleRule, User
+from app.domain.booking import WORKDAYS, WORK_START, WORK_END
 from app.db.repositories import ensure_user_stub
 from app.db.transactions import run_sqlite_write
 from app.domain.email import is_valid_email
@@ -17,11 +18,13 @@ SETTING_RANGES = {
     "default_duration": (15, 240), "buffer_minutes": (0, 120), "daily_limit": (1, 50),
     "booking_horizon_days": (1, 180), "min_booking_notice_hours": (1, 720),
 }
-SETTING_FIELDS = (*SETTING_RANGES, "booking_enabled")
+PROFILE_FIELDS = (*SETTING_RANGES, "booking_enabled")
+SETTING_FIELDS = (*PROFILE_FIELDS, "working_days")
 
 
-def settings_data(profile):
-    return {**{field: getattr(profile, field) for field in SETTING_FIELDS},
+def settings_data(profile, rules=()):
+    days = sorted({r.weekday for r in rules if r.is_active}) if rules else sorted(WORKDAYS)
+    return {**{field: getattr(profile, field) for field in PROFILE_FIELDS}, "working_days": days,
             "version": profile.version, "timezone": "Europe/Moscow",
             "google_status": profile.google_status, "google_email": profile.google_email}
 
@@ -30,7 +33,12 @@ def validate_changes(changes):
     if not isinstance(changes, dict) or not changes or set(changes)-set(SETTING_FIELDS):
         raise BookingError("VALIDATION_FAILED")
     for field, value in changes.items():
-        if field == "booking_enabled":
+        if field == "working_days":
+            if (not isinstance(value, list) or len(value) > 7
+                    or any(type(day) is not int or not 0 <= day <= 6 for day in value)
+                    or len(set(value)) != len(value)):
+                raise BookingError("VALIDATION_FAILED")
+        elif field == "booking_enabled":
             if type(value) is not bool:
                 raise BookingError("VALIDATION_FAILED")
         elif type(value) is not int or not SETTING_RANGES[field][0] <= value <= SETTING_RANGES[field][1]:
@@ -143,10 +151,28 @@ class ProfileCommands:
                 raise BookingError("BOOKING_UNAVAILABLE")
             if expected_version is not None:
                 check_version(profile, expected_version)
-            changed = any(getattr(profile, field) != value for field, value in changes.items())
+            rules = list((await session.scalars(select(ScheduleRule).where(
+                ScheduleRule.owner_id == actor.id))).all())
+            before = settings_data(profile, rules)
+            changed = any(before[field] != (sorted(value) if field == "working_days" else value)
+                          for field, value in changes.items())
             for field, value in changes.items():
-                setattr(profile, field, value)
+                if field == "working_days":
+                    # Materialize all days, including inactive ones: no rules means
+                    # the historical Mon–Fri fallback, not an entirely closed week.
+                    for day in range(7):
+                        existing = [rule for rule in rules if rule.weekday == day]
+                        if not existing:
+                            rule = ScheduleRule(owner_id=actor.id, weekday=day,
+                                start_time=WORK_START, end_time=WORK_END, is_active=day in value)
+                            session.add(rule)
+                            rules.append(rule)
+                        else:
+                            for rule in existing:
+                                rule.is_active = day in value
+                else:
+                    setattr(profile, field, value)
             if changed:
                 profile.version += 1
-            return settings_data(profile), profile.id, "owner_profile"
+            return settings_data(profile, rules), profile.id, "owner_profile"
         return await self._run(actor_id, command_id, "settings.updated", payload, update, owner=True)

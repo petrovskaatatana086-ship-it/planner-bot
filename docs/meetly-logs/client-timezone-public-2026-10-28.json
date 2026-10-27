@@ -1,0 +1,18 @@
+[
+  {
+    "file": "live.js",
+    "status": 200,
+    "sha256": "0bf6ee897268e99418af1f91a3c88bdc5b93d12aa22c23d050c592e9dbe2e255",
+    "matches_local": true
+  },
+  {
+    "file": "live.html",
+    "status": 200,
+    "sha256": "f983cc3dadc8bc529299f0a5f0a908e06da4712f46042b28d4df91d150096043",
+    "matches_local": true
+  },
+  {
+    "api_status": 401,
+    "cache_control": "no-store"
+  }
+]

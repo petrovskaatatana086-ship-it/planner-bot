@@ -162,6 +162,34 @@ class ProfileCommandsTest(unittest.IsolatedAsyncioTestCase):
                 changes={"buffer_minutes": 15}, expected_version=1)
         self.assertEqual(error.exception.code, "STALE_VERSION")
 
+    async def test_working_days_close_week_reopen_weekend_and_replay(self):
+        from datetime import date
+        from app.db.models import ScheduleRule
+        from app.domain.booking_policy import schedule_windows
+        data = dict(actor_id=self.owner.id, command_id=uuid.uuid4().hex,
+                    changes={"working_days": []}, expected_version=1)
+        result = await self.commands[0].patch_settings(**data)
+        self.assertEqual(result["working_days"], [])
+        self.assertEqual(result["version"], 2)
+        self.assertEqual(result, await self.commands[1].patch_settings(**data))
+        async with self.sessions[0]() as session:
+            rules = (await session.scalars(select(ScheduleRule))).all()
+            self.assertEqual(len(rules), 7)
+            self.assertEqual(schedule_windows(rules, date(2026, 10, 26)), ())
+        result = await self.commands[0].patch_settings(actor_id=self.owner.id,
+            command_id=uuid.uuid4().hex, changes={"working_days": [6, 5]}, expected_version=2)
+        self.assertEqual(result["working_days"], [5, 6])
+        async with self.sessions[0]() as session:
+            rules = (await session.scalars(select(ScheduleRule))).all()
+            self.assertTrue(schedule_windows(rules, date(2026, 10, 31)))
+            self.assertEqual(schedule_windows(rules, date(2026, 10, 26)), ())
+
+    async def test_working_days_strict_validation(self):
+        for days in ([True], [7], [-1], [1, 1], "1", None, [1.5]):
+            with self.subTest(days=days), self.assertRaises(BookingError):
+                await self.commands[0].patch_settings(actor_id=self.owner.id,
+                    command_id=uuid.uuid4().hex, changes={"working_days": days}, expected_version=1)
+
     async def test_two_concurrent_card_updates_have_one_winner(self):
         results = await asyncio.gather(*[self.commands[i].patch_settings(actor_id=self.owner.id,
             command_id=uuid.uuid4().hex, changes={"daily_limit": 10+i}, expected_version=1)
