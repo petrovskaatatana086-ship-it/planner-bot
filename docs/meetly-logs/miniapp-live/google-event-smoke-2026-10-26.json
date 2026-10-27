@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "attendees_added": false,
+  "invitations_sent": false,
+  "created": true,
+  "cancelled": true,
+  "error_type": "RuntimeError",
+  "error_code": "GOOGLE_HTTP_403"
+}

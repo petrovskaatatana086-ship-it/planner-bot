@@ -1,0 +1,2 @@
+{"phase": "gmail_login_verified", "email_sent": false}
+{"ok": true, "smtp_enabled": true, "gmail_login_verified": true, "test_email_sent": false, "old_queue_replayed": false, "production_unchanged": true, "google_configuration_unchanged": true, "test_records_preserved": true, "backup_verified": true, "health": {"status": "ok", "transport": "polling"}}

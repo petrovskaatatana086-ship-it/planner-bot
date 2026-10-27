@@ -1,0 +1,17 @@
+.\.venv\Scripts\python.exe : Executing <Task pending name='Task-1' coro=<BookingCommandsTest.asyncSetUp() running at C:
+\Users\sukhorukov.da\My Projects\����������� �����_���\tests\test_booking_commands.py:41> wait_for=<Future pending cb=[
+Task.task_wakeup()] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.p
+y:448> cb=[_run_until_complete_cb() at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_
+events.py:181] created at C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:100> to
+ok 0.266 seconds
+строка:214 знак:1
++ .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_book ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Executing <Task...k 0.266 seconds:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 10.056s
+
+OK

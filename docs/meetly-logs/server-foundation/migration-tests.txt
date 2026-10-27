@@ -1,0 +1,11 @@
+.\.venv\Scripts\python.exe : .....
+строка:106 знак:1
++ .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_book ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (.....:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.150s
+
+OK

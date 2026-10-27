@@ -1,0 +1,16 @@
+[
+  {
+    "snapshot_records_preserved": true,
+    "original_google_event_ids_preserved": true,
+    "sync_states": [
+      [
+        3,
+        "synced"
+      ]
+    ]
+  },
+  {
+    "javascript_status": 200,
+    "sha256": "8e8e807a1b39edfb2ef55be3de722ff803c639bd181bc2f8a411e4d1da02cfe1"
+  }
+]

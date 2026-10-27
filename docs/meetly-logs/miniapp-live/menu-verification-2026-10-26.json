@@ -1,0 +1,10 @@
+{
+  "verified": true,
+  "actual": {
+    "type": "web_app",
+    "text": "Открыть Meetly",
+    "web_app": {
+      "url": "https://calendar.tatyana-petrovskaya.ru/meetly-test/miniapp/"
+    }
+  }
+}

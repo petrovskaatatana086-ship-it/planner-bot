@@ -1,0 +1,61 @@
+{
+  "ok": true,
+  "url": "https://calendar.tatyana-petrovskaya.ru/meetly-test/miniapp/",
+  "https_static_status": 200,
+  "unauthenticated_api_status": 401,
+  "production_unchanged": true,
+  "production_http_unchanged": true,
+  "test_business_records_preserved": true,
+  "nginx_test_passed": true,
+  "backup_directory": "/opt/meetly-test/backups/miniapp-activation-2026-10-25",
+  "date": "2026-10-25",
+  "regression_tests": 332,
+  "regression_result": "OK",
+  "assets_https_status": 200,
+  "owner_menu_verified": true,
+  "default_menu_verification": "verified 2026-10-26; see menu-verification-2026-10-26.json",
+  "manual_telegram_acceptance": "Passed: owner and client confirmed core test Mini App flows on 2026-10-26",
+  "menu": {
+    "default": {
+      "verified": true,
+      "actual": {
+        "type": "web_app",
+        "text": "Открыть Meetly",
+        "web_app": {
+          "url": "https://calendar.tatyana-petrovskaya.ru/meetly-test/miniapp/"
+        }
+      }
+    },
+    "owner": {
+      "verified": true,
+      "actual": {
+        "type": "web_app",
+        "text": "Открыть Meetly",
+        "web_app": {
+          "url": "https://calendar.tatyana-petrovskaya.ru/meetly-test/miniapp/"
+        }
+      }
+    }
+  },
+  "manual_acceptance": {
+    "date": "2026-10-26",
+    "environment": "meetly-test",
+    "source": "user confirmation",
+    "owner": [
+      "open app",
+      "view requests",
+      "approve request",
+      "reject request"
+    ],
+    "client": [
+      "registration and login",
+      "create request",
+      "owner approval",
+      "request reschedule",
+      "owner approval of reschedule",
+      "verify updated time",
+      "cancel meeting"
+    ],
+    "production_acceptance": false
+  }
+}

@@ -1,0 +1,1 @@
+{"ok": true, "image": "calendar-bot:0b4a47a87f027407ce3b4487645a2dd7792d5234", "source_revision": "0b4a47a87f027407ce3b4487645a2dd7792d5234", "health": {"status": "ok", "transport": "webhook"}, "records_preserved": true, "configuration_unchanged": true, "test_container_unchanged": true, "backup_verified": true}

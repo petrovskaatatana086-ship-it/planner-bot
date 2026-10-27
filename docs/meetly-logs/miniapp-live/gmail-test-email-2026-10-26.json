@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "smtp_accepted": true,
+  "test_emails_sent": 1,
+  "delivery_confirmed_by_user": true,
+  "confirmation_evidence": "User screenshot shows Meetly - test email in Gmail Inbox"
+}

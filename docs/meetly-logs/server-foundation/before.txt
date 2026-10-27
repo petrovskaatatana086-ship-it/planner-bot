@@ -1,0 +1,1186 @@
+.\.venv\Scripts\python.exe : EEEEE
+строка:2 знак:247
++ ... oding UTF8; .\.venv\Scripts\python.exe -m unittest discover -s tests  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (EEEEE:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+======================================================================
+ERROR: test_approved_request_does_not_block_old_time_after_move (test_booking_availability_regressions.BookingAvailabil
+ityRegressionTest.test_approved_request_does_not_block_old_time_after_move)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 691, in run_un
+til_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\tests\test_booking_availability_regressions.py", line
+19, in asyncSetUp
+    async with self.engine.begin() as connection:
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 1063, in begin
+    async with conn:
+               ^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\base.py
+", line 121, in __aenter__
+    return await self.start(is_ctxmanager=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 273, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3276, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+======================================================================
+ERROR: test_cancelled_meeting_and_approved_request_release_time (test_booking_availability_regressions.BookingAvailabil
+ityRegressionTest.test_cancelled_meeting_and_approved_request_release_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 691, in run_un
+til_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\tests\test_booking_availability_regressions.py", line
+19, in asyncSetUp
+    async with self.engine.begin() as connection:
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 1063, in begin
+    async with conn:
+               ^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\base.py
+", line 121, in __aenter__
+    return await self.start(is_ctxmanager=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 273, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3276, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+======================================================================
+ERROR: test_expired_reservation_releases_time (test_booking_availability_regressions.BookingAvailabilityRegressionTest.
+test_expired_reservation_releases_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 691, in run_un
+til_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\tests\test_booking_availability_regressions.py", line
+19, in asyncSetUp
+    async with self.engine.begin() as connection:
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 1063, in begin
+    async with conn:
+               ^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\base.py
+", line 121, in __aenter__
+    return await self.start(is_ctxmanager=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 273, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3276, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+======================================================================
+ERROR: test_live_reservation_blocks_time (test_booking_availability_regressions.BookingAvailabilityRegressionTest.test_
+live_reservation_blocks_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 691, in run_un
+til_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\tests\test_booking_availability_regressions.py", line
+19, in asyncSetUp
+    async with self.engine.begin() as connection:
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 1063, in begin
+    async with conn:
+               ^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\base.py
+", line 121, in __aenter__
+    return await self.start(is_ctxmanager=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 273, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3276, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+======================================================================
+ERROR: test_null_reservation_does_not_block_time (test_booking_availability_regressions.BookingAvailabilityRegressionTe
+st.test_null_reservation_does_not_block_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 691, in run_un
+til_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\tests\test_booking_availability_regressions.py", line
+19, in asyncSetUp
+    async with self.engine.begin() as connection:
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 1063, in begin
+    async with conn:
+               ^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\base.py
+", line 121, in __aenter__
+    return await self.start(is_ctxmanager=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\ext\asyncio\engine.
+py", line 273, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3276, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 2440, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\base.py", li
+ne 3300, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\impl.py", line
+ 308, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 674, in __init__
+    self.__connect()
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 900, in __connect
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py
+", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\pool\base.py", line
+ 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\create.py",
+line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\engine\default.py",
+ line 620, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aio
+sqlite.py", line 352, in connect
+    await_only(connection),
+    ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\sqlalchemy\util\_concurrency_p
+y3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 140,
+in _connect
+    self._connection = await future
+                       ^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 115,
+in run
+    result = function()
+             ^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\My Projects\����������� �����_���\.venv\Lib\site-packages\aiosqlite\core.py", line 392,
+in connector
+    return sqlite3.connect(loc, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.117s
+
+FAILED (errors=5)
+Traceback (most recent call last):
+  File "<frozen os>", line 366, in walk
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_yb4089np'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 666, in _exitfunc
+    f()
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 590, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 939, in _cleanup
+    cls._rmtree(name, ignore_errors=ignore_errors)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 934, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 781, in rmtree
+    return _rmtree_unsafe(path, onexc)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 623, in _rmtree_unsafe
+    for dirpath, dirnames, filenames in results:
+                                        ^^^^^^^
+  File "<frozen os>", line 369, in walk
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 621, in onerror
+    onexc(os.scandir, err.filename, err)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 906, in onexc
+    _resetperms(path)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 286, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 277, in _dont_follow_syml
+inks
+    func(path, *args)
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_yb4089np'
+Traceback (most recent call last):
+  File "<frozen os>", line 366, in walk
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_oufwz1vq'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 666, in _exitfunc
+    f()
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 590, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 939, in _cleanup
+    cls._rmtree(name, ignore_errors=ignore_errors)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 934, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 781, in rmtree
+    return _rmtree_unsafe(path, onexc)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 623, in _rmtree_unsafe
+    for dirpath, dirnames, filenames in results:
+                                        ^^^^^^^
+  File "<frozen os>", line 369, in walk
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 621, in onerror
+    onexc(os.scandir, err.filename, err)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 906, in onexc
+    _resetperms(path)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 286, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 277, in _dont_follow_syml
+inks
+    func(path, *args)
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_oufwz1vq'
+Traceback (most recent call last):
+  File "<frozen os>", line 366, in walk
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_5blo9bja'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 666, in _exitfunc
+    f()
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 590, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 939, in _cleanup
+    cls._rmtree(name, ignore_errors=ignore_errors)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 934, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 781, in rmtree
+    return _rmtree_unsafe(path, onexc)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 623, in _rmtree_unsafe
+    for dirpath, dirnames, filenames in results:
+                                        ^^^^^^^
+  File "<frozen os>", line 369, in walk
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 621, in onerror
+    onexc(os.scandir, err.filename, err)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 906, in onexc
+    _resetperms(path)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 286, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 277, in _dont_follow_syml
+inks
+    func(path, *args)
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_5blo9bja'
+Traceback (most recent call last):
+  File "<frozen os>", line 366, in walk
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_ki_3xym9'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 666, in _exitfunc
+    f()
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 590, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 939, in _cleanup
+    cls._rmtree(name, ignore_errors=ignore_errors)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 934, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 781, in rmtree
+    return _rmtree_unsafe(path, onexc)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 623, in _rmtree_unsafe
+    for dirpath, dirnames, filenames in results:
+                                        ^^^^^^^
+  File "<frozen os>", line 369, in walk
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 621, in onerror
+    onexc(os.scandir, err.filename, err)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 906, in onexc
+    _resetperms(path)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 286, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 277, in _dont_follow_syml
+inks
+    func(path, *args)
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_ki_3xym9'
+Traceback (most recent call last):
+  File "<frozen os>", line 366, in walk
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_hic59jyv'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 666, in _exitfunc
+    f()
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\weakref.py", line 590, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 939, in _cleanup
+    cls._rmtree(name, ignore_errors=ignore_errors)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 934, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 781, in rmtree
+    return _rmtree_unsafe(path, onexc)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 623, in _rmtree_unsafe
+    for dirpath, dirnames, filenames in results:
+                                        ^^^^^^^
+  File "<frozen os>", line 369, in walk
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\shutil.py", line 621, in onerror
+    onexc(os.scandir, err.filename, err)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 906, in onexc
+    _resetperms(path)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 286, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+  File "C:\Users\sukhorukov.da\AppData\Local\Programs\Python\Python312\Lib\tempfile.py", line 277, in _dont_follow_syml
+inks
+    func(path, *args)
+PermissionError: [WinError 5] �������� � �������: 'C:\\Users\\sukhorukov.da\\My Projects\\����������� �����_���\\.test_
+booking_hic59jyv'

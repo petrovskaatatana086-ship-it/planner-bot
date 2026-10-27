@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "staging_directory": "/opt/meetly-test/staging/google-2026-10-26",
+  "redirect_uri": "https://calendar.tatyana-petrovskaya.ru/meetly-test/google/oauth/callback",
+  "activated": false,
+  "independent_encryption_key": true,
+  "production_unchanged": true,
+  "production_tokens_copied": false,
+  "smtp_enabled": false
+}

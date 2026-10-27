@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "sha256": "8e8e807a1b39edfb2ef55be3de722ff803c639bd181bc2f8a411e4d1da02cfe1",
+  "matches_local": true,
+  "deployment": {
+    "ok": true,
+    "image": "meetly-test:3eab6ee94a5afd331006e9f92fa5c2488293c4ac",
+    "source_revision": "3eab6ee94a5afd331006e9f92fa5c2488293c4ac",
+    "health": {
+      "status": "ok",
+      "transport": "polling"
+    },
+    "production_unchanged": true,
+    "test_business_records_preserved": true,
+    "backup_verified": true,
+    "test_record_counts": {
+      "booking_requests": 10,
+      "meetings": 7
+    },
+    "loopback_port": 8013
+  }
+}

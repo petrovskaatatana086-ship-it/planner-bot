@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "oauth_active": true,
+  "test_calendar_created": true,
+  "calendar_name": "Meetly — тест",
+  "calendar_bound": true,
+  "freebusy_ok": true,
+  "google_meet_supported": true,
+  "smtp_enabled": false
+}
